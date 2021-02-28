@@ -1,8 +1,8 @@
 package com.hulu.spark.guice
 
 import com.google.inject.name.Names
-import com.hulu.guice.SingletonScope
-import com.hulu.guice.annotation.Wrapper
+import com.hulu.neutrino.annotation.Wrapper
+import com.hulu.neutrino.{SingletonScope, SparkModule, SparkPrivateModule}
 import org.junit.runner.RunWith
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.FunSuite
