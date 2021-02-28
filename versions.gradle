@@ -1,0 +1,16 @@
+ext {
+    targetJavaVersion = '1.8'
+    scalaVersion = '2.11.12'
+    scalaBinaryVersion = '2.11'
+    sparkVersion = '2.3.3'
+    sparkTestVersion = '2.3.3_0.14.0'
+    scalaTestVersion = '3.0.8'
+    junitVersion = '4.12'
+    slf4jVersion = '1.7.28'
+    silencerVersion = '1.7.0'
+    spotbugsVersion = '4.2.0'
+    guavaVersion = '28.2-jre'
+    scoveragePluginVersion = '4.0.2'
+    guiceVersion = '4.2.3'
+    scalaGuiceVersion = '4.2.11'
+}

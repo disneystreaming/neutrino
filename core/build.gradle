@@ -1,0 +1,17 @@
+dependencies {
+    provided "org.scala-lang:scala-library:${scalaVersion}"
+
+    compile "net.codingwell:scala-guice_${scalaBinaryVersion}:${scalaGuiceVersion}"
+    compile "com.google.inject:guice:${guiceVersion}"
+
+    provided "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
+    compile "com.typesafe.scala-logging:scala-logging_${scalaBinaryVersion}:3.9.0"
+    implementation project(":core-java")
+
+    testCompile "org.scalactic:scalactic_${scalaBinaryVersion}:${scalaTestVersion}"
+    testCompile "org.scalatest:scalatest_${scalaBinaryVersion}:${scalaTestVersion}"
+    testCompile "org.scalamock:scalamock_${scalaBinaryVersion}:4.4.0"
+    testCompile "junit:junit:${junitVersion}"
+}

@@ -1,0 +1,5 @@
+if (project.ext.scalaSource) {
+    apply from: file("$rootDir/gradle/scoverage.gradle")
+} else {
+    apply from: file("$rootDir/gradle/jacoco.gradle")
+}

@@ -1,0 +1,48 @@
+if (ext.scalaSource || ext.scalaTest) {
+    apply plugin: 'scala'
+
+    configurations {
+        scalacPlugin {
+            transitive = false
+        }
+    }
+
+    dependencies {
+        compile "com.github.ghik:silencer-lib_${scalaVersion}:${silencerVersion}"
+        scalacPlugin "com.github.ghik:silencer-plugin_${scalaVersion}:${silencerVersion}"
+        scalacPlugin "org.scalamacros:paradise_${scalaVersion}:2.1.1"
+    }
+
+    // we need to add the additional compiler options after the sub projects are evaluated,
+    // otherwise, some exception about variable evaluation may occurred.
+    afterEvaluate {
+        tasks.withType(ScalaCompile) {
+            // for details about these compiler options,
+            // see: https://docs.scala-lang.org/overviews/compiler-options/index.html
+            // we need to keep the existing parameters
+            scalaCompileOptions.additionalParameters = scalaCompileOptions.additionalParameters ?: []
+            scalaCompileOptions.additionalParameters += [
+                "-target:jvm-${targetJavaVersion}".toString(),
+                "-feature", // Emit warning and location for usages of features that should be imported explicitly.
+                "-language:higherKinds", // Allow higher-kinded types
+                "-language:implicitConversions", // Allow definition of implicit functions called views
+                "-language:postfixOps", // Allow postfix operator notation, such as 1 to 10 toList
+                "-language:existentials", //Existential types (besides wildcard types) can be written and inferred
+                //"-Ymacro-debug-lite"
+            ]
+
+            if (!project.ext.fastBuild) {
+                scalaCompileOptions.additionalParameters += [
+                    "-unchecked", // Enable additional warnings
+                    "-deprecation", // Emit warning and location for usages of deprecated APIs
+                    "-Xfatal-warnings", // Fail the compilation if there are any warnings
+                    "-Xlint",  // Enable recommended warnings
+                    //"-Ywarn-unused-import"
+                ]
+            }
+
+            // enable @silent annotation to suppress compiler warnings
+            scalaCompileOptions.additionalParameters += configurations.scalacPlugin.collect { "-Xplugin:" + it.absolutePath }
+        }
+    }
+}

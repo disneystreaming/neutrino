@@ -1,0 +1,22 @@
+apply plugin: 'java'
+apply plugin: 'io.freefair.lombok'
+apply plugin: 'maven'
+
+sourceCompatibility=targetJavaVersion
+targetCompatibility=targetJavaVersion
+
+configurations {
+    provided
+}
+
+sourceSets {
+    main { compileClasspath += configurations.provided }
+    test { compileClasspath += configurations.provided }
+}
+
+if (!ext.fastBuild) {
+    compileJava {
+        options.compilerArgs << '-Xlint:unchecked'
+        options.compilerArgs << '-Werror'
+    }
+}

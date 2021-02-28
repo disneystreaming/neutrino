@@ -1,0 +1,35 @@
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.5"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled false
+        html.enabled true
+
+        xml.destination file("$buildDir/JacocoReport/test/jacocoTestReport.xml")
+        html.destination file("$buildDir/jacocoHtml")
+    }
+
+    dependsOn test
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.3
+            }
+        }
+    }
+}
+
+if (ext.fastBuild) {
+    project.gradle.startParameter.excludedTaskNames.add('jacocoTestReport')
+    project.gradle.startParameter.excludedTaskNames.add('jacocoTestCoverageVerification')
+}

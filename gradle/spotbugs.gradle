@@ -1,0 +1,23 @@
+apply plugin: "com.github.spotbugs"
+
+dependencies {
+    compile "com.github.spotbugs:spotbugs-annotations:${spotbugsVersion}"
+
+    spotbugs "com.github.spotbugs:spotbugs:${spotbugsVersion}"
+}
+
+spotbugs {
+    toolVersion = spotbugsVersion
+    reportLevel = "low"
+    effort = "max"
+    excludeFilter = file("$rootDir/config/spotbugs/spotbugs-exclude.xml")
+}
+
+spotbugsMain {
+    reports {
+        // we can't set both settting to true,
+        // or only xml report is generated
+        xml.enabled = false
+        html.enabled = true
+    }
+}

@@ -1,0 +1,22 @@
+if (ext.scalaSource || ext.scalaTest) {
+    apply plugin: "com.github.alisiikh.scalastyle"
+
+    scalastyle {
+        config = file("$rootDir/scalastyle_config.xml")
+        failOnWarning = true
+
+        sourceSets {
+            test {
+                // specifically configure scalastyle for test sourceSet
+                config = file("$rootDir/scalastyle_test.xml")
+                failOnWarning = true
+            }
+        }
+    }
+}
+
+if (ext.fastBuild) {
+    project.gradle.startParameter.excludedTaskNames.add('scalastyleCheck')
+    project.gradle.startParameter.excludedTaskNames.add('scalastyleMainCheck')
+    project.gradle.startParameter.excludedTaskNames.add('scalastyleTestCheck')
+}

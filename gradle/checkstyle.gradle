@@ -1,0 +1,14 @@
+apply plugin: 'checkstyle'
+
+checkstyle {
+    toolVersion = '8.34'
+    ignoreFailures = false
+    // use one common config file for all subprojects
+    configFile = project(':').file('config/checkstyle/checkstyle.xml')
+    configProperties = [ "suppressionFile" : project(':').file('config/checkstyle/suppressions.xml')]
+}
+
+if (ext.fastBuild) {
+    project.gradle.startParameter.excludedTaskNames.add('checkstyleMain')
+    project.gradle.startParameter.excludedTaskNames.add('checkstyleTest')
+}

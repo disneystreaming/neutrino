@@ -1,0 +1,5 @@
+if (ext.scalaTest) {
+    if (project.ext.fastBuild) {
+        project.gradle.startParameter.excludedTaskNames.add('compileTestScala')
+    }
+}

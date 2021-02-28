@@ -1,0 +1,44 @@
+buildscript {
+    apply from: file('versions.gradle')
+    dependencies {
+        classpath "com.google.guava:guava:${guavaVersion}"
+        classpath "gradle.plugin.org.scoverage:gradle-scoverage:${scoveragePluginVersion}"
+    }
+}
+
+plugins {
+    id "com.github.spotbugs" version "4.6.0" apply false
+    id "com.github.alisiikh.scalastyle" version "3.4.1" apply false
+    id "com.github.johnrengelman.shadow" version "6.0.0" apply false
+    id "io.freefair.lombok" version "5.1.0" apply false
+    id "org.sonarqube" version "3.0"
+    id 'org.scoverage' version "${scoveragePluginVersion}" apply false
+    id 'idea'
+}
+
+apply from: file("$rootDir/gradle/sonarqube.gradle")
+
+allprojects {
+    apply from: file("$rootDir/gradle/repositories.gradle")
+}
+
+subprojects {
+    ext {
+        fastBuild = project.hasProperty('fast') || (project.hasProperty('environment') && project.getProperty("environment") == 'fast')
+        scalaSource = new File("$projectDir/src/main/scala").exists()
+        scalaTest = new File("$projectDir/src/test/scala").exists()
+    }
+
+    group 'com.hulu.campaign'
+    version '0.1-SNAPSHOT'
+
+    apply from: file("$rootDir/gradle/java.gradle")
+    apply from: file("$rootDir/gradle/checkstyle.gradle")
+    apply from: file("$rootDir/gradle/test.gradle")
+
+    apply from: file("$rootDir/gradle/scala.gradle")
+    apply from: file("$rootDir/gradle/scalastyle.gradle")
+    apply from: file("$rootDir/gradle/scalatest.gradle")
+
+    apply from: file("$rootDir/gradle/codecoverage.gradle")
+}
