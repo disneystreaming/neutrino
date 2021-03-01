@@ -4,8 +4,7 @@ checkstyle {
     toolVersion = '8.34'
     ignoreFailures = false
     // use one common config file for all subprojects
-    configFile = project(':').file('config/checkstyle/checkstyle.xml')
-    configProperties = [ "suppressionFile" : project(':').file('config/checkstyle/suppressions.xml')]
+    configFile = project(':').file('codestyle/checkstyle/checkstyle.xml')
 }
 
 if (ext.fastBuild) {
