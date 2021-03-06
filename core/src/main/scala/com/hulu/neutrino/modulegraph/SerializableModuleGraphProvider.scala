@@ -1,11 +1,11 @@
 package com.hulu.neutrino.modulegraph
 
 import com.hulu.neutrino.lang.JSerializable
-import com.hulu.neutrino.SparkEnvironmentHolder
 import com.hulu.neutrino.utils.JFunc
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.{SparkContext, SparkEnv, TaskContext}
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.{SparkEnv, TaskContext}
 
 import java.nio.ByteBuffer
 import java.util.Base64
@@ -19,7 +19,8 @@ object SerializableModuleGraphProvider extends StrictLogging {
     private val graphMap = new ConcurrentHashMap[String, ModuleGraph]()
     private val broadcastMap = new ConcurrentHashMap[String, Broadcast[ModuleGraph]]()
 
-    def createProvider(sparkContext: SparkContext, graph: ModuleGraph, graphName: String): ModuleGraphProvider = {
+    def createProvider(sparkSession: SparkSession, graph: ModuleGraph, graphName: String): ModuleGraphProvider = {
+        val sparkContext = sparkSession.sparkContext
         val broadcastName = getBroadcastName(graphName)
         val b = sparkContext.broadcast(graph)
 
@@ -33,11 +34,12 @@ object SerializableModuleGraphProvider extends StrictLogging {
                 SparkEnv.get.closureSerializer.newInstance().serialize(b).array()))
         graphMap.put(broadcastName, graph)
 
-        new SerializableModuleGraphProvider(graph, broadcastName)
+        new SerializableModuleGraphProvider(sparkSession, graph, broadcastName)
     }
 }
 
 class SerializableModuleGraphProvider(
+    private val sparkSession: SparkSession,
     @transient private val _graph: ModuleGraph,
     private val broadcastName: String)
     extends ModuleGraphProvider
@@ -49,7 +51,8 @@ class SerializableModuleGraphProvider(
         if (_graph != null) {
             _graph
         } else {
-            if (SparkEnvironmentHolder.isDriver) {
+            if (sparkSession.sparkContext != null) {
+                // driver
                 SerializableModuleGraphProvider.graphMap.get(broadcastName)
             } else {
                 SerializableModuleGraphProvider.graphMap.computeIfAbsent(broadcastName, JFunc { k: String =>

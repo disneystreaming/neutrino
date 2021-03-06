@@ -31,7 +31,7 @@ class SparkInjectorBuilder private[neutrino](private val sparkSession: SparkSess
     }
 
     def prepareInjectors(): Unit = {
-        val provider = SerializableModuleGraphProvider.createProvider(sparkSession.sparkContext, graphBuilder.build(), name)
+        val provider = SerializableModuleGraphProvider.createProvider(sparkSession, graphBuilder.build(), name)
         graphProxies.foreach(proxy => proxy.set(provider))
     }
 }

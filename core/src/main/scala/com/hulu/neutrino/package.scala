@@ -3,25 +3,38 @@ package com.hulu
 import com.hulu.neutrino.injectorbuilder.SparkInjectorBuilder
 import net.codingwell.scalaguice.KeyExtensions._
 import net.codingwell.scalaguice.typeLiteral
+import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Duration, StreamingContext}
 
 import java.lang.annotation.Annotation
+import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 package object neutrino {
     type SingletonScope = com.google.inject.Singleton
 
+    object SparkSessionExtensions {
+        val builderNameMap = new mutable.WeakHashMap[SparkContext, mutable.Set[String]]()
+    }
+
     implicit class SparkSessionExtensions(private val sparkSession: SparkSession) extends AnyVal {
         def newInjectorBuilder(name: String = "default"): SparkInjectorBuilder = {
-            SparkEnvironmentHolder.setDriver()
-            SparkEnvironmentHolder.setSparkSession(sparkSession)
+            if (!SparkSessionExtensions.builderNameMap.contains(sparkSession.sparkContext)) {
+                SparkSessionExtensions.builderNameMap.put(sparkSession.sparkContext, mutable.Set())
+            }
+
+            if (SparkSessionExtensions.builderNameMap(sparkSession.sparkContext).contains(name)) {
+                throw new RuntimeException(s"duplicate builder name $name for current sparkContext")
+            } else {
+                SparkSessionExtensions.builderNameMap(sparkSession.sparkContext).add(name)
+            }
 
             new SparkInjectorBuilder(sparkSession, name)
         }
 
-        def newSingleInjector(modules: SparkModule*): SparkInjector = {
+        def newSingleInjector(modules: SerializableModule*): SparkInjector = {
             val builder = newInjectorBuilder()
             val injector = builder.newRootInjector(modules:_*)
             builder.prepareInjectors()
@@ -30,7 +43,7 @@ package object neutrino {
 
         def newStreamingContext(batchDuration: Duration): StreamingContext = {
             val streamingContext = new StreamingContext(sparkSession.sparkContext, batchDuration)
-            SparkEnvironmentHolder.setStreamingContext(streamingContext)
+            SparkEnvironmentHolder.setStreamingContext(sparkSession.sparkContext, streamingContext)
             streamingContext
         }
 
@@ -41,7 +54,7 @@ package object neutrino {
         def getOrCreateStreamingContext(checkpointPath: String, func: SparkSession => StreamingContext): StreamingContext = {
             val session = sparkSession
             val streamingContext = StreamingContext.getOrCreate(checkpointPath, () => func.apply(session))
-            SparkEnvironmentHolder.setStreamingContext(streamingContext)
+            SparkEnvironmentHolder.setStreamingContext(sparkSession.sparkContext, streamingContext)
             streamingContext
         }
     }
