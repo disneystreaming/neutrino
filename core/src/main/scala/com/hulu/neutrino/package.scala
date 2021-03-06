@@ -1,6 +1,8 @@
 package com.hulu
 
+import com.google.inject.Module
 import com.hulu.neutrino.injectorbuilder.SparkInjectorBuilder
+import com.hulu.neutrino.lang.JSerializable
 import net.codingwell.scalaguice.KeyExtensions._
 import net.codingwell.scalaguice.typeLiteral
 import org.apache.spark.SparkContext
@@ -13,6 +15,7 @@ import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 package object neutrino {
+    type SerializableModule = Module with JSerializable
     type SingletonScope = com.google.inject.Singleton
 
     object SparkSessionExtensions {

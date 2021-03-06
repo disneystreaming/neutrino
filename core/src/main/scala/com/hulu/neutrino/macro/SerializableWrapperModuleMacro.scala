@@ -45,15 +45,6 @@ object SerializableWrapperModuleMacro {
 
         import c.universe._
 
-        def getModule(tree: scala.reflect.api.Trees#Tree): scala.reflect.api.Trees#Tree = {
-            var node = tree
-            while (node.children.nonEmpty) {
-                node = node.children.head
-            }
-
-            node
-        }
-
         val weakTypeTag = c.weakTypeOf[T]
         val line = c.enclosingPosition.line
 
@@ -67,7 +58,6 @@ object SerializableWrapperModuleMacro {
         val module = q"${node}"
         println(s"1 firstnode: ${module}")
         var keyExpr: c.Tree = null
-        var moduleBinding: c.Tree = null
         builder match {
             case q"$moduleBind($tt) $annotatedWith($at)" => {
                 println(s"2 module: $moduleBind \n tt: $tt \n annotatedWith: $annotatedWith \n at: $at")
@@ -85,12 +75,15 @@ object SerializableWrapperModuleMacro {
             import net.codingwell.scalaguice._
             import scala.reflect.runtime.universe._
             import com.hulu.neutrino.serializableprovider.SerializableProvider
-            import com.hulu.neutrino.utils.ClosureCleaner
+            import com.twitter.chill.ClosureCleaner
 
             val nestedAnnotation = com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getNestedAnnotation(key)
             val nestedKey = com.google.inject.Key.get(typeLiteral[${weakTypeTag}], nestedAnnotation)
-            val func: SerializableProvider[${weakTypeTag}] => ${weakTypeTag} =
-                p => ${SerializableProxyMacro.createProxy[T](c)(c.Expr[() => T](q"ClosureCleaner.cleanTo(() => p.get())"))}
+            val func: SerializableProvider[${weakTypeTag}] => ${weakTypeTag} = p => {
+                val serializableProvider: () => ${weakTypeTag} = () => p.get()
+                ClosureCleaner(serializableProvider)
+                ${SerializableProxyMacro.createProxy[T](c)(c.Expr[() => T](q"serializableProvider"))}
+            }
 
             install(new com.hulu.neutrino.serializablewrapper.InnerPrivateModule[${weakTypeTag}](nestedKey, key, func))
 
