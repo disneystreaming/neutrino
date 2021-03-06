@@ -2,6 +2,7 @@ package com.hulu.neutrino.modulegraph
 
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.esotericsoftware.kryo.{Kryo, KryoSerializable}
+import com.google.common.base.Preconditions
 import com.google.inject.{Guice, Injector}
 import com.hulu.neutrino.lang.JSerializable
 import com.hulu.neutrino.SerializableModule
@@ -21,11 +22,17 @@ class SerializableModuleGraph(private var nodes: Seq[ModuleNode])
     with JSerializable
     with KryoSerializable
     with GraphProperties {
+    Preconditions.checkNotNull(nodes)
+
+    private[neutrino] def this() {
+        this(Seq())
+    }
+
     @transient
     private var injectors: ListBuffer[Injector] = _
 
     @transient
-    private val properties = mutable.Map[String, Any]()
+    private var properties: mutable.Map[String, Any] = _
 
     @transient
     @volatile
@@ -35,6 +42,7 @@ class SerializableModuleGraph(private var nodes: Seq[ModuleNode])
 
     private def buildInjectors(): Unit = {
         if (!built) {
+            properties = mutable.Map[String, Any]()
             injectors = new ListBuffer[Injector]()
 
             nodes.indices.foreach { i =>

@@ -31,11 +31,11 @@ object ModuleGraphBuilder {
 
         override def createChildInjector(parentId: Int, modules: Seq[SerializableModule], modulesCreator: ModulesCreator): Int = {
             if (parentId < -1 || parentId >= nodes.size) {
-                throw new RuntimeException(s"The parent injector id $parentId is not found")
+                throw new IllegalArgumentException(s"The parent injector id $parentId is not found")
             }
 
             if (modules == null && modulesCreator == null) {
-                throw new RuntimeException("both modules and modulesCreator are null")
+                throw new IllegalArgumentException("both modules and modulesCreator are null")
             }
 
             var node = new ModuleNode(parentId, Option(modules), Option(modulesCreator))
@@ -44,6 +44,9 @@ object ModuleGraphBuilder {
         }
 
         override def build(): ModuleGraph = {
+            if (nodes.isEmpty) {
+                throw new UnsupportedOperationException("the graph nodes should not be empty")
+            }
             new SerializableModuleGraph(nodes)
         }
     }

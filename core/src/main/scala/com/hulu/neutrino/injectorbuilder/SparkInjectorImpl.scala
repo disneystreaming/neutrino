@@ -17,7 +17,7 @@ private[neutrino] class SparkInjectorImpl (
         }
 
         if (sparkInjectorFactory == null) {
-            throw new RuntimeException("createChildInjector should only be called in master")
+            throw new UnsupportedOperationException("createChildInjector should only be called in master")
         }
 
         sparkInjectorFactory.createChildInjector(injectorIndex, modules.toSeq)

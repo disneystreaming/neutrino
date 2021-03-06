@@ -28,7 +28,7 @@ class StreamingBatchScope extends Scope {
             override def get(): T = {
                 val taskContext = TaskContext.get()
                 if (taskContext == null) {
-                    throw new RuntimeException(s"the batched scope instance should only be retrieved in batch context")
+                    throw new UnsupportedOperationException(s"the batched scope instance should only be retrieved in batch context")
                 }
 
                 val batchTime = taskContext.getLocalProperty(StreamingBatchScope.BATCH_TIME_PROPERTY_KEY).toLong

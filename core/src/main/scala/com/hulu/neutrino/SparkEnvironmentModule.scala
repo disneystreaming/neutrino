@@ -18,7 +18,7 @@ private[neutrino] class SparkEnvironmentModule (
         this.bind[StreamingContext].toProvider(new Provider[StreamingContext] {
             override def get(): StreamingContext = {
                 if (sparkSession.sparkContext == null) {
-                    throw new RuntimeException("StreamingContext is only available in the driver")
+                    throw new UnsupportedOperationException("StreamingContext is only available in the driver")
                 }
 
                 SparkEnvironmentHolder.getStreamingContext(sparkSession.sparkContext).get
