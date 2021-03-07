@@ -1,7 +1,7 @@
 package com.hulu.neutrino.scope
 
 import com.google.inject.{Key, Provider, Scope}
-import org.apache.spark.TaskContext
+import org.apache.spark.{SparkContext, TaskContext}
 
 import java.util.concurrent.atomic.AtomicReference
 import scala.collection.mutable
@@ -15,29 +15,40 @@ object StreamingBatchScope {
 case class BatchValue(batchTime: Long, value: Any)
 
 class StreamingBatchScope extends Scope {
-    private val locks = mutable.Map[Key[_], Object]()
-    private val batchValues = mutable.Map[Key[_], AtomicReference[BatchValue]]()
+    private var id = 0
+
+    private val locks = mutable.Map[Int, Object]()
+    private val batchValues = mutable.Map[Int, AtomicReference[BatchValue]]()
 
     override def scope[T](key: Key[T], unscoped: Provider[T]): Provider[T] = {
-        if (!batchValues.contains(key)) {
-            batchValues.put(key, new AtomicReference[BatchValue]())
-            locks.put(key, new Object)
-        }
+        val currentId = id
+        id += 1
+
+        batchValues.put(currentId, new AtomicReference[BatchValue]())
+        locks.put(currentId, new Object)
 
         new Provider[T] {
             override def get(): T = {
-                val taskContext = TaskContext.get()
-                if (taskContext == null) {
-                    throw new UnsupportedOperationException(s"the batched scope instance should only be retrieved in batch context")
+                val batchTimeStr: String =
+                    if (TaskContext.get() != null) {
+                        // executor
+                        TaskContext.get().getLocalProperty(StreamingBatchScope.BATCH_TIME_PROPERTY_KEY)
+                    } else {
+                        // driver
+                        SparkContext.getOrCreate().getLocalProperty(StreamingBatchScope.BATCH_TIME_PROPERTY_KEY)
+                    }
+
+                if (batchTimeStr == null) {
+                    throw new UnsupportedOperationException(s"the batched scope instance should only be retrieved in streaming batch context")
                 }
 
-                val batchTime = taskContext.getLocalProperty(StreamingBatchScope.BATCH_TIME_PROPERTY_KEY).toLong
-                val valueRef = batchValues(key)
+                val batchTime = batchTimeStr.toLong
+                val valueRef = batchValues(currentId)
                 val oldBatch = valueRef.get()
                 if (oldBatch != null && oldBatch.batchTime == batchTime) {
                     oldBatch.value.asInstanceOf[T]
                 } else {
-                    val lock = locks.get(key)
+                    val lock = locks.get(currentId)
                     var oldValue: Any = null
                     var result: Any = null
                     lock.synchronized {
@@ -59,7 +70,6 @@ class StreamingBatchScope extends Scope {
 
                     result.asInstanceOf[T]
                 }
-
             }
         }
     }

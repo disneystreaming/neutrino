@@ -28,8 +28,11 @@ if (ext.scalaSource || ext.scalaTest) {
                 "-language:implicitConversions", // Allow definition of implicit functions called views
                 "-language:postfixOps", // Allow postfix operator notation, such as 1 to 10 toList
                 "-language:existentials", //Existential types (besides wildcard types) can be written and inferred
-                //"-Ymacro-debug-lite"
             ]
+
+            if (project.hasProperty('debug-macro')) {
+                scalaCompileOptions.additionalParameters += [ "-Ymacro-debug-lite" ]
+            }
 
             if (!project.ext.fastBuild) {
                 scalaCompileOptions.additionalParameters += [

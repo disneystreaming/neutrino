@@ -14,4 +14,6 @@ dependencies {
     testCompile "org.scalatest:scalatest_${scalaBinaryVersion}:${scalaTestVersion}"
     testCompile "org.scalamock:scalamock_${scalaBinaryVersion}:4.4.0"
     testCompile "junit:junit:${junitVersion}"
+    testCompile "com.holdenkarau:spark-testing-base_${scalaBinaryVersion}:${sparkTestVersion}"
+    testCompile "org.slf4j:slf4j-simple:${slf4jVersion}"
 }

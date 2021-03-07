@@ -49,18 +49,15 @@ object SerializableWrapperModuleMacro {
         val line = c.enclosingPosition.line
 
         val q"$conv($builder)" = c.prefix.tree
-        println(s"builder: $builder")
         var node = builder
         while (node.children.nonEmpty) {
             node = node.children.head
         }
 
         val module = q"${node}"
-        println(s"1 firstnode: ${module}")
         var keyExpr: c.Tree = null
         builder match {
             case q"$moduleBind($tt) $annotatedWith($at)" => {
-                println(s"2 module: $moduleBind \n tt: $tt \n annotatedWith: $annotatedWith \n at: $at")
                 keyExpr = q"com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getKey[${weakTypeTag}]($at)"
             }
             case q"$moduleBind($at)" => {
@@ -69,27 +66,27 @@ object SerializableWrapperModuleMacro {
         }
         val bindingMethod = TermName(s"innerBinding_$line")
         c.Expr[ScalaLinkedBindingBuilder[T]](q"""
-         def ${bindingMethod}(
-            key: com.google.inject.Key[${weakTypeTag}]): net.codingwell.scalaguice.ScalaModule.ScalaLinkedBindingBuilder[${weakTypeTag}] = {
-            import com.hulu.neutrino._
-            import net.codingwell.scalaguice._
-            import scala.reflect.runtime.universe._
-            import com.hulu.neutrino.serializableprovider.SerializableProvider
-            import com.twitter.chill.ClosureCleaner
+             def ${bindingMethod}(
+                key: com.google.inject.Key[${weakTypeTag}]): net.codingwell.scalaguice.ScalaModule.ScalaLinkedBindingBuilder[${weakTypeTag}] = {
+                import com.hulu.neutrino._
+                import net.codingwell.scalaguice._
+                import scala.reflect.runtime.universe._
+                import com.hulu.neutrino.serializableprovider.SerializableProvider
+                import com.twitter.chill.ClosureCleaner
 
-            val nestedAnnotation = com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getNestedAnnotation(key)
-            val nestedKey = com.google.inject.Key.get(typeLiteral[${weakTypeTag}], nestedAnnotation)
-            val func: SerializableProvider[${weakTypeTag}] => ${weakTypeTag} = p => {
-                val serializableProvider: () => ${weakTypeTag} = () => p.get()
-                ClosureCleaner(serializableProvider)
-                ${SerializableProxyMacro.createProxy[T](c)(c.Expr[() => T](q"serializableProvider"))}
-            }
+                val nestedAnnotation = com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getNestedAnnotation(key)
+                val nestedKey = com.google.inject.Key.get(typeLiteral[${weakTypeTag}], nestedAnnotation)
+                val func: SerializableProvider[${weakTypeTag}] => ${weakTypeTag} = p => {
+                    val serializableProvider: () => ${weakTypeTag} = () => p.get()
+                    ClosureCleaner(serializableProvider)
+                    ${SerializableProxyMacro.createProxy[T](c)(c.Expr[() => T](q"serializableProvider"))}
+                }
 
-            install(new com.hulu.neutrino.serializablewrapper.InnerPrivateModule[${weakTypeTag}](nestedKey, key, func))
+                install(new com.hulu.neutrino.serializablewrapper.InnerPrivateModule[${weakTypeTag}](nestedKey, key, func))
 
-            $module.bind[$weakTypeTag].annotatedWith(nestedAnnotation)
-         }
-         ${bindingMethod}(${keyExpr})
+                $module.bind[$weakTypeTag].annotatedWith(nestedAnnotation)
+             }
+             ${bindingMethod}(${keyExpr})
          """)
     }
 }
