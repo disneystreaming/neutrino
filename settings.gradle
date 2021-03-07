@@ -11,4 +11,5 @@ pluginManagement {
 rootProject.name = 'neutrino'
 include 'core'
 include 'core-java'
+include 'examples'
 

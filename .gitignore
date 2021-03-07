@@ -17,3 +17,5 @@ out
 lombok.config
 
 reports
+
+src/scoverage

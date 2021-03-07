@@ -1,0 +1,40 @@
+apply plugin: "com.github.johnrengelman.shadow"
+
+dependencies {
+    compile(project(":core")) {
+        exclude group: "org.apache.spark", module: "spark-core_${scalaBinaryVersion}"
+        exclude group: "org.apache.spark", module: "spark-streaming_${scalaBinaryVersion}"
+        exclude group: "org.apache.spark", module: "spark-sql_${scalaBinaryVersion}"
+    }
+
+    provided "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
+
+    compile ("org.apache.spark:spark-streaming-kafka-0-10_${scalaBinaryVersion}:${sparkVersion}") {
+        exclude group: "org.scalatest", module: "scalatest_${scalaBinaryVersion}"
+    }
+
+    compile "org.scala-lang.modules:scala-collection-compat_${scalaBinaryVersion}:2.4.2"
+    implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaBinaryVersion}:2.12.2"
+}
+
+shadowJar {
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+
+    relocate 'shapeless', 'shadow.shapeless'
+    relocate 'com.google', 'shadow.com.google'
+    relocate 'com.fasterxml.jackson', 'shadow.com.fasterxml.jackson'
+
+    zip64 true
+}
+
+artifacts {
+    shadowJar
+}
+
+// replace jar with shadowJar
+jar.enabled = false
+build.dependsOn(shadowJar)
