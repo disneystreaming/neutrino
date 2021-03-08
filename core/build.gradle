@@ -1,14 +1,22 @@
+apply plugin: 'java-library'
+
 dependencies {
-    compile "org.scala-lang:scala-library:${scalaVersion}"
+    api "org.scala-lang:scala-library:${scalaVersion}"
 
-    compile "net.codingwell:scala-guice_${scalaBinaryVersion}:${scalaGuiceVersion}"
-    compile "com.google.inject:guice:${guiceVersion}"
+    api "net.codingwell:scala-guice_${scalaBinaryVersion}:${scalaGuiceVersion}"
+    api "com.google.inject:guice:${guiceVersion}"
 
-    compile "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
-    compile "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
-    compile "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
-    compile "com.typesafe.scala-logging:scala-logging_${scalaBinaryVersion}:3.9.0"
-    compile project(":core-java")
+    provided "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
+    api "com.typesafe.scala-logging:scala-logging_${scalaBinaryVersion}:3.9.0"
+
+    api "com.google.inject:guice:${guiceVersion}"
+    api 'org.apache.commons:commons-lang3:3.11'
+
+    testCompile "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    testCompile "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
+    testCompile "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
 
     testCompile "org.scalactic:scalactic_${scalaBinaryVersion}:${scalaTestVersion}"
     testCompile "org.scalatest:scalatest_${scalaBinaryVersion}:${scalaTestVersion}"
@@ -17,3 +25,5 @@ dependencies {
     testCompile "com.holdenkarau:spark-testing-base_${scalaBinaryVersion}:${sparkTestVersion}"
     testCompile "org.slf4j:slf4j-simple:${slf4jVersion}"
 }
+
+apply from: file("$rootDir/gradle/publish.gradle")

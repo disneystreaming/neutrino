@@ -1,0 +1,44 @@
+apply plugin: "maven-publish"
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+def pomConfig = {
+    developers {
+        developer {
+            id 'russell.bie'
+            name 'Russell Bie'
+            email 'russell.bie@hulu.com'
+        }
+    }
+}
+
+publishing {
+    publications {
+        binary(MavenPublication) { publication ->
+            from components.java
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('description', 'A dependency injection framework for apache spark')
+                root.children().last() + pomConfig
+            }
+        }
+    }
+    repositories {
+        maven {
+            def repoUrl = project.hasProperty("repo-url") ? project.getProperty("repo-url") : "url"
+            def user = project.hasProperty("username") ? project.getProperty("username") : "user"
+            def pass = project.hasProperty("password") ? project.getProperty("password") : "pass"
+            afterEvaluate {
+                url = repoUrl
+            }
+            // fill in the empty strings with your CORP user name and password
+            credentials {
+                username user
+                password pass
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
 package com.hulu.neutrino.example
 
-import com.hulu.neutrino.scope.StreamingBatch
+import com.hulu.neutrino.annotation.scope.StreamingBatch
 import com.hulu.neutrino.{SingletonScope, SparkModule}
 
 class FilterModule(dbConfig: DbConfig) extends SparkModule {

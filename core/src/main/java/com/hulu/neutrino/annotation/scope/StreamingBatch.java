@@ -1,4 +1,4 @@
-package com.hulu.neutrino.scope;
+package com.hulu.neutrino.annotation.scope;
 
 import com.google.inject.ScopeAnnotation;
 

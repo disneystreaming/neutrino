@@ -29,7 +29,7 @@ subprojects {
         scalaTest = new File("$projectDir/src/test/scala").exists()
     }
 
-    group 'com.hulu.campaign'
+    group 'com.hulu.neutrino'
     version '0.1-SNAPSHOT'
 
     apply from: file("$rootDir/gradle/java.gradle")

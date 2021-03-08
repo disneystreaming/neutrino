@@ -1,7 +1,7 @@
 package com.hulu.neutrino
 
 import com.holdenkarau.spark.testing.StreamingSuiteBase
-import com.hulu.neutrino.scope.StreamingBatch
+import com.hulu.neutrino.annotation.scope.StreamingBatch
 import com.hulu.neutrino.sparktest.{LazySparkContext, NoCheckpoint, SparkSuiteTest}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.dstream.DStream

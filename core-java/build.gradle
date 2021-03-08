@@ -1,4 +1,0 @@
-dependencies {
-    compile "com.google.inject:guice:${guiceVersion}"
-    compile 'org.apache.commons:commons-lang3:3.11'
-}
