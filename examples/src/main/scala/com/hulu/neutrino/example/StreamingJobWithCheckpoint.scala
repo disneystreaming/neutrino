@@ -15,7 +15,7 @@ object StreamingJobWithCheckpoint {
         val rootInjector = injectorBuilder.newRootInjector(Modules.bindModules:_*)
         injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
 
-        // Don't call StreamingContext.getOrCreate
+        // Don't call StreamingContext.getOrCreate directly
         val streamingContext = sparkSession.getOrCreateStreamingContext("hdfs://HOST/checkpointpath", session => {
             // Don't call the constructor directly
             val streamContext = session.newStreamingContext(Duration(1000*30))

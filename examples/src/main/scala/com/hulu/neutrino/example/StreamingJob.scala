@@ -29,6 +29,7 @@ object StreamingJob {
         val rootInjector = injectorBuilder.newRootInjector(Modules.bindModules:_*)
         injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
 
+        // Don't call the constructor directly
         val streamingContext = sparkSession.newStreamingContext(Duration(1000*30))
         rootInjector.instance[DStream[TestEvent]]
             .filter(e => rootInjector.instance[EventFilter[TestEvent]].filter(e))

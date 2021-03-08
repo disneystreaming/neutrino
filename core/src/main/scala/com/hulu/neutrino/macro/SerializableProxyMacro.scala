@@ -12,49 +12,59 @@ object SerializableProxyMacro {
         val traitName = weakTypeTag.typeSymbol.fullName
 
         val supplierName = "supplier"
-        val from = weakTypeTag.etaExpand.typeParams
-        val to = weakTypeTag.typeArgs
-        val newMethods = for {
-            methodToAdd <- weakTypeTag.decls
-        } yield {
-            val methodSymbol = methodToAdd.asMethod
-            val formalParams = methodSymbol.paramLists.map(_.map {
-                paramSymbol => ValDef(
-                    Modifiers(Flag.PARAM, typeNames.EMPTY, List()),
-                    paramSymbol.name.toTermName,
-                    TypeTree(paramSymbol.typeSignature.substituteTypes(from, to)), // replace generic types to actual ones
-                    EmptyTree)
-            })
+        val baseClasses = weakTypeTag.baseClasses.filter(s => !s.equals(weakTypeTag.typeSymbol) && s.isAbstract)
+        val thisFrom = weakTypeTag.etaExpand.typeParams
+        val thisTo = weakTypeTag.typeArgs
+        val from = baseClasses
+            .flatMap{ baseSymbol =>
+                weakTypeTag.baseType(baseSymbol).etaExpand.typeParams
+            } ++ thisFrom
 
-            // This AST node corresponds to the following Scala code:
-            // supplierName.apply()
-            val actual = Apply(Select(Ident(TermName(supplierName)), TermName("apply")), List())
-            val result = if (methodSymbol.paramLists.nonEmpty) {
-                // actual.methodSymbol(params)
-                var tempResult = Apply(Select(actual, methodSymbol.name),
-                    methodSymbol.paramLists.head.map(param => Ident(param.name)))
-                // for method which has multiple parameter list
-                methodSymbol.paramLists.slice(1, methodSymbol.paramLists.size).foreach { paramList =>
-                    tempResult = Apply(tempResult, paramList.map(param => Ident(param.name)))
+        val to = baseClasses
+            .flatMap{ baseSymbol =>
+                weakTypeTag.baseType(baseSymbol).typeArgs
+            } ++ thisTo
+
+        val newMethods = weakTypeTag.members.filter(_.isAbstract)
+            .map { methodToAdd =>
+                val methodSymbol = methodToAdd.asMethod
+                val formalParams = methodSymbol.paramLists.map(_.map {
+                    paramSymbol => ValDef(
+                        Modifiers(Flag.PARAM, typeNames.EMPTY, List()),
+                        paramSymbol.name.toTermName,
+                        TypeTree(paramSymbol.typeSignature.substituteTypes(from, to)), // replace generic types to actual ones
+                        EmptyTree)
+                })
+
+                // This AST node corresponds to the following Scala code:
+                // supplierName.apply()
+                val actual = Apply(Select(Ident(TermName(supplierName)), TermName("apply")), List())
+                val result = if (methodSymbol.paramLists.nonEmpty) {
+                    // actual.methodSymbol(params)
+                    var tempResult = Apply(Select(actual, methodSymbol.name),
+                        methodSymbol.paramLists.head.map(param => Ident(param.name)))
+                    // for method which has multiple parameter list
+                    methodSymbol.paramLists.slice(1, methodSymbol.paramLists.size).foreach { paramList =>
+                        tempResult = Apply(tempResult, paramList.map(param => Ident(param.name)))
+                    }
+
+                    tempResult
+                } else {
+                    // for method which take no parameters
+                    // This AST node corresponds to the following Scala code:
+                    // actual.methodName
+                    Select(actual, methodSymbol.name)
                 }
 
-                tempResult
-            } else {
-                // for method which take no parameters
-                // This AST node corresponds to the following Scala code:
-                // actual.methodName
-                Select(actual, methodSymbol.name)
-            }
 
-
-            DefDef(Modifiers(Flag.OVERRIDE),
-                methodSymbol.name,
-                methodSymbol.typeParams.map{t =>
-                    c.internal.typeDef(t)
-                },
-                formalParams,
-                TypeTree(methodSymbol.returnType.substituteTypes(from, to)),
-                result)
+                DefDef(Modifiers(Flag.OVERRIDE),
+                    methodSymbol.name,
+                    methodSymbol.typeParams.map{t =>
+                        c.internal.typeDef(t)
+                    },
+                    formalParams,
+                    TypeTree(methodSymbol.returnType.substituteTypes(from, to)),
+                    result)
         }
 
 
