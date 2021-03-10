@@ -11,7 +11,7 @@ A dependency injection (DI) framework for apache spark
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
     - [Example: handle serialization automatically](#example-handle-serialization-automatically)
     - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
-    - [Advanced usage for object passing-around between JVMs](#advanced-usage-for-object-passing-around-between-jvms)
+    - [Advanced usage for automatic serialization handling](#advanced-usage-for-automatic-serialization-handling)
 - [New scopes](#new-scopes)
     - [Example: StreamingBatch scope](#example-streamingbatch-scope)
 - [Other features](#other-features)
