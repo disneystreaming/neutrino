@@ -12,8 +12,8 @@ A dependency injection (DI) framework for apache spark
 - [What can the neutrino framework do](#what-can-the-neutrino-framework-do)
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
   - [Example: handle serialization automatically](#example-handle-serialization-automatically)
-  - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
   - [Advanced usage for automatic serialization handling](#advanced-usage-for-automatic-serialization-handling)
+  - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
 - [New scopes](#new-scopes)
   - [Example: StreamingBatch scope](#example-streamingbatch-scope)
 - [Other features](#other-features)
@@ -143,34 +143,6 @@ Since `DbUserWhiteListsEventFilter` is created with the graph per JVM, so all it
 
 **There is only one limitation** --- all the modules creating the dependency graph have to be serializable (the base class `SparkModule` has already implemented the `java.io.Serializable`), which is rather easy to handle. For the above example, the only thing need to be serialized is `DbConfig`.
 
-## Example: recover the job from spark checkpoint
-Sometimes we need to enable the checkpoint in case of job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for all objects generated from the graph (even the injectors themselves). Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
-
-Here is an example of how to do that:
-```scala
-import com.hulu.neutrino._
-
-val injectorBuilder = sparkSession.newInjectorBuilder()
-val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
-injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
-
-val checkpointPath = "hdfs://HOST/checkpointpath"
-
-// Don't call StreamingContext.getOrCreate directly
-val streamingContext = sparkSession.getOrCreateStreamingContext(checkpointPath, session => {
-    // Don't call the constructor directly
-    val streamContext = session.newStreamingContext(Duration(1000*30))
-    streamContext.checkpoint(checkpointPath)
-    val eventStream: DStream[TestEvent] = ...
-    eventStream
-        .filter(e => rootInjector.instance[EventFilter[TestEvent]].filter(e))
-    streamContext
-})
-
-streamingContext.start()
-streamingContext.awaitTermination()
-```
-
 ## Advanced usage for automatic serialization handling
 The auto-generated serializable wrapper assumes the binding type is an interface (or trait for scala). If it is not the case, like some concrete or final class, the neutrino framework provides a way to get a serializable `Provider[T]` instance which contains the creation method of the target object, and this provider object can be used to passed around JVMs.
 
@@ -200,6 +172,34 @@ class StreamHandler {
 ```
 
 Currently, the serializable `Provider[T]` can only be retrieved via annotation `InjectSerializableProvider` on a setter method.
+
+## Example: recover the job from spark checkpoint
+Sometimes we need to enable the checkpoint in case of job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for the injectors and all objects wrapped with auto-generated wrapper or serializable provider. Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
+
+Here is an example of how to do that:
+```scala
+import com.hulu.neutrino._
+
+val injectorBuilder = sparkSession.newInjectorBuilder()
+val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
+injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
+
+val checkpointPath = "hdfs://HOST/checkpointpath"
+
+// Don't call StreamingContext.getOrCreate directly
+val streamingContext = sparkSession.getOrCreateStreamingContext(checkpointPath, session => {
+    // Don't call the constructor directly
+    val streamContext = session.newStreamingContext(Duration(1000*30))
+    streamContext.checkpoint(checkpointPath)
+    val eventStream: DStream[TestEvent] = ...
+    eventStream
+        .filter(e => rootInjector.instance[EventFilter[TestEvent]].filter(e))
+    streamContext
+})
+
+streamingContext.start()
+streamingContext.awaitTermination()
+```
 
 # New scopes
 ## Example: StreamingBatch scope
