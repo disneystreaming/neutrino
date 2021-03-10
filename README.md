@@ -2,6 +2,25 @@
 
 A dependency injection (DI) framework for apache spark
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Why it is so difficult to apply DI on apache spark](#why-it-is-so-difficult-to-apply-di-on-apache-spark)
+- [What can the neutrino framework do](#what-can-the-neutrino-framework-do)
+- [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
+    - [Example: handle serialization automatically](#example-handle-serialization-automatically)
+    - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
+    - [Advanced usage for object passing-around between JVMs](#advanced-usage-for-object-passing-around-between-jvms)
+- [New scopes](#new-scopes)
+    - [Example: StreamingBatch scope](#example-streamingbatch-scope)
+- [Other features](#other-features)
+    - [Some key spark objects are also injectable](#some-key-spark-objects-are-also-injectable)
+    - [Injector Hierarchy / Child Injector](#injector-hierarchy--child-injector)
+    - [Multiple dependency graphs in single job](#multiple-dependency-graphs-in-single-job)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Why it is so difficult to apply DI on apache spark
 
 As we know, [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection) (DI) is a famous design pattern that is widely used in Object-Oriented Programming (OOP). It separates the responsibility of "use" from the responsibility of "construction", and keeps modules evolving independently.
@@ -151,7 +170,7 @@ class StreamHandler extends EventFilter[TestEvent] {
 
 Currently, the serializable `Provider[T]` can only be retrieved via annotation `InjectSerializableProvider` on a setter method.
 
-# new scopes
+# New scopes
 ## Example: StreamingBatch scope
  If we evolve the example above a little, say the user white list in the database is changeable, and we'd like to update the white list data in every batch. To achieve this goal, we only need to do a little change in the module.
 ```scala
@@ -183,7 +202,7 @@ injectorBuilder.prepareInjectors()
 ```
 Note: All children injectors belonged to the same root injector are in the same dependency graph
 
-## multiple dependency graphs in single job
+## Multiple dependency graphs in single job
 In most cases, we only need a single dependency graph in a spark job, but if there is any necessary to separate the dependency between logic, the neutrino also provide a way to create separate graphs. All you need to do is provide a different name for each graph. The name for the default graph is "default".
 Here is an example
 ```scala
