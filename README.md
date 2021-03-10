@@ -6,18 +6,20 @@ A dependency injection (DI) framework for apache spark
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
+- [Essential Information](#essential-information)
+  - [Binary Releases](#binary-releases)
 - [Why it is so difficult to apply DI on apache spark](#why-it-is-so-difficult-to-apply-di-on-apache-spark)
 - [What can the neutrino framework do](#what-can-the-neutrino-framework-do)
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
-    - [Example: handle serialization automatically](#example-handle-serialization-automatically)
-    - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
-    - [Advanced usage for automatic serialization handling](#advanced-usage-for-automatic-serialization-handling)
+  - [Example: handle serialization automatically](#example-handle-serialization-automatically)
+  - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
+  - [Advanced usage for automatic serialization handling](#advanced-usage-for-automatic-serialization-handling)
 - [New scopes](#new-scopes)
-    - [Example: StreamingBatch scope](#example-streamingbatch-scope)
+  - [Example: StreamingBatch scope](#example-streamingbatch-scope)
 - [Other features](#other-features)
-    - [Some key spark objects are also injectable](#some-key-spark-objects-are-also-injectable)
-    - [Injector Hierarchy / Child Injector](#injector-hierarchy--child-injector)
-    - [Multiple dependency graphs in single job](#multiple-dependency-graphs-in-single-job)
+  - [Some key spark objects are also injectable](#some-key-spark-objects-are-also-injectable)
+  - [Injector Hierarchy / Child Injector](#injector-hierarchy--child-injector)
+  - [Multiple dependency graphs in a single job](#multiple-dependency-graphs-in-a-single-job)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
