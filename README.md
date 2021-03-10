@@ -21,6 +21,29 @@ A dependency injection (DI) framework for apache spark
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+# Essential Information
+## Binary Releases
+Currently, the project is built based on apache spark 2.3 and scala 2.11, and we are working to release it with more spark and scala versions.
+
+You can consume it with maven like this:
+```xml
+<dependency>
+    <groupId>com.hulu.neutrino</groupId>
+    <artifactId>core</artifactId>
+    <version>0.3.1-SNAPSHOT</version>
+</dependency>
+```
+
+for gradle
+```groovy
+compile "com.hulu.neutrino:core:0.3.1-SNAPSHOT"
+```
+
+for sbt
+```scala
+libraryDependencies += "com.hulu.neutrino" % "core" % "0.3.1-SNAPSHOT"
+```
+
 # Why it is so difficult to apply DI on apache spark
 
 As we know, [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection) (DI) is a famous design pattern that is widely used in Object-Oriented Programming (OOP). It separates the responsibility of "use" from the responsibility of "construction", and keeps modules evolving independently.
@@ -209,7 +232,7 @@ injectorBuilder.prepareInjectors()
 ```
 Note: All children injectors belonged to the same root injector are in the same dependency graph, and all of them are serializable.
 
-## Multiple dependency graphs in single job
+## Multiple dependency graphs in a single job
 In most cases, we only need a single dependency graph in a spark job, but if there is any necessity to separate the dependencies between different logic, the neutrino also provide a way to create separate graphs. All you need to do is provide a different name for each graph. The name for the default graph is "default".
 
 Here is an example
