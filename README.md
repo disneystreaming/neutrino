@@ -35,17 +35,20 @@ A spark job is a distributed application which requires collaboration of multipl
 The neutrino framework is designed to relieve the serialization work in spark application. In fact, in most cases except for the data object (such as elements in RDD), our framework will handle the serialization/deserialization work automatically (include normal object serialization and checkpoint).
 
 And the framework also provides some handy DI object scope management features, such as Singleton Scope per JVM, StreamingBatch scope (reuse the object in the same spark streaming batch per JVM).
+
 In addition, the spark key utility object such as SparkContext, SparkSession, StreamingContext are also injectable, which provides more flexibility for the orchestration of the spark job.
 
 # How does the neutrino handle the serialization problem
 
 As we know, to adopt the DI framework, we need to first build a dependency graph first, which describes the dependency relationship between multiple instances. Guice uses Module API to build the graph while the Spring framework uses XML file or annotations.
+
 The neutrino is built based on [Guice framework](https://github.com/google/guice), and of course builds the dependency graph with the guice module API. It doesn't only keep the graph in the driver, but also have the same graph running on every executor.
 
 ![serialize creation method](./images/serialize_creation_method.png)
 
 If an object is about to be passed to another JVM, instead of serializing the object and its dependencies, the neutrino framework remembers the creation method of the object, passes the information to the target JVM, and recreates it and all its dependencies with the graph there in the same way, The object even doesn't have to be serializable, all of which is done automatically by the framework.
-Here is an example:
+
+Here are some examples:
 
 ## Example: handle serialization automatically
 Consider such a case that there is an event stream, and we'd like to abstract the logic to filter the stream based on a white list of user ids, which is stored in the database. Here is how we implement it with the neutrino.
@@ -117,6 +120,7 @@ Since `DbUserWhiteListsEventFilter` is created with the graph per JVM, so all it
 
 ## Example: recover the job from spark checkpoint
 Sometimes we need to enable the checkpoint in case of job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for all objects generated from the graph (even the injectors themselves). Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
+
 Here is an example of how to do that:
 ```scala
 import com.hulu.neutrino._
@@ -191,6 +195,7 @@ With the `StreamingBatch` scope, the instance for `EventFilter[TestEvent]` will 
 # Other features
 ## Some key spark objects are also injectable
 These injectable objects include SparkSession, SparkContext, StreamingContext, which makes the spark application more flexible.
+
 With it, we can even make `DStream[T]` or `RDD[T]` injectable. [Here](./examples/src/main/scala/com/hulu/neutrino/example/TestEventStreamProvider.scala) is an example. 
 
 ## Injector Hierarchy / Child Injector
@@ -206,6 +211,7 @@ Note: All children injectors belonged to the same root injector are in the same 
 
 ## Multiple dependency graphs in single job
 In most cases, we only need a single dependency graph in a spark job, but if there is any necessity to separate the dependencies between different logic, the neutrino also provide a way to create separate graphs. All you need to do is provide a different name for each graph. The name for the default graph is "default".
+
 Here is an example
 ```scala
 import com.hulu.neutrino._
