@@ -28,7 +28,7 @@ The neutrino internally builds the dependency graph with the Guice framework. Af
 If an object is about to be passed to another JVM, instead of serializing the object and its dependencies, the neutrino framework remembers the creation method of the object and passes the information to the target JVM and recreates it there in the same way, The object even doesn't have to be serializable, all of which is done automatically by the framework.
 Here is an example:
 
-## Example: handle serializable automatically
+## Example: handle serialization automatically
 Consider such a case, if we'd like to abstract the logic to filter the event stream based on a white list of user id, which is stored in the database. Here is how we handle it with the neutrino.
 
 ```scala
@@ -43,11 +43,12 @@ trait EventFilter[T] {
 
 // here is the spark job logic
 val injectorBuilder = sparkSession.newInjectorBuilder()
-val injector = injectorBuilder.newRootInjector(Modules.bindModules:_*)
+val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
 injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
 
 val filter = injector.instance[EventFilter[TestEvent]]
-DStream[TestEvent].filter(e => filter.filter(e))
+val eventStream: DStream[TestEvent] = ...
+eventStream.filter(e => filter.filter(e))
 
 // OR
 DStream[TestEvent]
@@ -96,7 +97,62 @@ In the example above, `DbConnectionProvider` would be created with the graph per
 
 **There is only one limitation** --- the binding module which creates the dependency graph need to be serializable (the base class `SparkModule` extends the `java.io.Serializable`), which is easy to handle. For the above example, the only thing need to be serialized is `DbConfig`.
 
-##Example: StreamingBatch scope
+## Example: recover the job from spark checkpoint
+To ensure the stability of spark streaming job, we need to enable the checkpoint in case of job failure, which requires any closure object need to be serializable. The neutrino framework would automatically handle the recovering work for all objects generated from the graph. Actually, when the job is recovering, it rebuilds the graph on every JVM firstly, on which all objects are regenerated.
+Here is an example of how to do that:
+```scala
+import com.hulu.neutrino._
+
+val injectorBuilder = sparkSession.newInjectorBuilder()
+val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
+injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
+
+val checkpointPath = "hdfs://HOST/checkpointpath"
+
+// Don't call StreamingContext.getOrCreate directly
+val streamingContext = sparkSession.getOrCreateStreamingContext(checkpointPath, session => {
+    // Don't call the constructor directly
+    val streamContext = session.newStreamingContext(Duration(1000*30))
+    streamContext.checkpoint(checkpointPath)
+    val eventStream: DStream[TestEvent] = ...
+    eventStream
+        .filter(e => rootInjector.instance[EventFilter[TestEvent]].filter(e))
+    streamContext
+})
+
+streamingContext.start()
+streamingContext.awaitTermination()
+```
+
+## Advanced usage for object passing-around between JVMs
+The auto-generated serializable wrapper assumes the binding type is an interface or trait in scala. If it is not the case, like some concrete or final class need to be passed to executors, the neutrino framework also provide a way to get the serializable info as a `Provider[T]` (which is serializable) , you can pass the actual object with it.
+Here is an example:
+```scala
+final class EventProcessor {
+    def process(event: TestEvent)
+}
+
+class StreamHandler extends EventFilter[TestEvent] {
+    private var provider: Provider[EventProcessor]
+    
+    @InjectSerializableProvider
+    def setProvider(provider: Provider[EventProcessor]): Unit = {
+        this.provider = provider
+    }
+    
+    def handleStream(eventStream: DStream[TestEvent]): Unit = {
+        val localProvider = provider
+        eventStream.map { e =>
+            localProvider.get().process(e)
+        }
+    }
+}
+```
+
+Currently, the serializable `Provider[T]` can only be retrieved via annotation `InjectSerializableProvider` on a setter method.
+
+# new scopes
+## Example: StreamingBatch scope
  If we evolve the example above a little, say the user white list in the database is changeable, and we'd like to update the white list data in every batch. To achieve this goal, we only need to do a little change in the module.
 ```scala
 class FilterModule(dbConfig: DbConfig) extends SparkModule {
@@ -114,3 +170,32 @@ With the `StreamingBatch` scope, the instance for `EventFilter[TestEvent]` will 
 # Other features
 ## Some key spark objects are also injectable
 These injectable objects include SparkSession, SparkContext, StreamingContext, which makes the spark application more flexible.
+With it, we can even make `DStream[T]` or `RDD[T]` injectable. [Here](./examples/src/main/scala/com/hulu/neutrino/example/TestEventStreamProvider.scala) is an example. 
+
+## Injector Hierarchy / Child Injector
+The Injector Hierarchy/Child Injector is also supported. Here is a simple example.
+```scala
+val injectorBuilder = sparkSession.newInjectorBuilder()
+val rootInjector = injectorBuilder.newRootInjector(new ParentModule())
+val childInjector rootInjector.createChildInjector(new ChildModule())
+// this prepareInjectors must be called after all injectors are built and before any instance is retrieved from any injector
+injectorBuilder.prepareInjectors()
+```
+Note: All children injectors belonged to the same root injector are in the same dependency graph
+
+## multiple dependency graphs in single job
+In most cases, we only need a single dependency graph in a spark job, but if there is any necessary to separate the dependency between logic, the neutrino also provide a way to create separate graphs. All you need to do is provide a different name for each graph. The name for the default graph is "default".
+Here is an example
+```scala
+import com.hulu.neutrino._
+
+val defaultInjectorBuilder = sparkSession.newInjectorBuilder()
+val injector1 = defaultInjectorBuilder.newRootInjector(new FilterModule(dbConfig))
+injectorBuilder.prepareInjectors()
+
+val injectorBuilder2 = sparkSession.newInjectorBuilder("another graph")
+val injector2 = injectorBuilder2.newRootInjector(new FilterModule(dbConfig))
+injectorBuilder.prepareInjectors()
+
+// any spark logic
+```
