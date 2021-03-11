@@ -1,16 +1,47 @@
+project.ext.scalaVersionMap = [
+    '2.11': '2.11.12',
+    '2.12': '2.12.13',
+    '2.13': '2.13.5'
+]
+
+String getScalaBinaryVersion() {
+    if (project.hasProperty("scala-version")) {
+        def scalaBinaryVersion = project.property("scala-version")
+        if (project.ext.scalaVersionMap.containsKey(scalaBinaryVersion)) {
+            return scalaBinaryVersion
+        } else {
+            throw new RuntimeException("unknown scala version $scalaBinaryVersion")
+        }
+    } else {
+        return '2.11'
+    }
+}
+
+String getScalaVersion() {
+    return project.ext.scalaVersionMap[getScalaBinaryVersion()]
+}
+
+String getSparkVersion() {
+    if (project.hasProperty("spark-version")) {
+        return project.property("spark-version")
+    } else {
+        return '2.3.3'
+    }
+}
+
 ext {
     targetJavaVersion = '1.8'
-    scalaVersion = '2.11.12'
-    scalaBinaryVersion = '2.11'
-    sparkVersion = '2.3.3'
-    sparkTestVersion = '2.3.3_0.14.0'
+    scalaVersion = getScalaVersion()
+    scalaBinaryVersion = getScalaBinaryVersion()
+    sparkVersion = getSparkVersion()
+    sparkTestVersion = "${getSparkVersion()}_0.14.0"
     scalaTestVersion = '3.0.8'
     junitVersion = '4.12'
     slf4jVersion = '1.7.28'
-    silencerVersion = '1.7.0'
+    silencerVersion = '1.7.3'
     spotbugsVersion = '4.2.0'
     guavaVersion = '28.2-jre'
-    scoveragePluginVersion = '4.0.2'
+    scoveragePluginVersion = '5.0.0'
     guiceVersion = '4.2.3'
     scalaGuiceVersion = '4.2.11'
 }

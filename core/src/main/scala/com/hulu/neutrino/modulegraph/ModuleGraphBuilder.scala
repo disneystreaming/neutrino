@@ -38,7 +38,7 @@ object ModuleGraphBuilder {
                 throw new IllegalArgumentException("both modules and modulesCreator are null")
             }
 
-            var node = new ModuleNode(parentId, Option(modules), Option(modulesCreator))
+            val node = new ModuleNode(parentId, Option(modules), Option(modulesCreator))
             nodes += node
             nodes.size - 1
         }

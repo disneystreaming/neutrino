@@ -1,8 +1,8 @@
 package com.hulu.neutrino.injectorbuilder
 
 import com.google.inject.matcher.Matchers
+import com.hulu.neutrino.ScalaModule
 import com.hulu.neutrino.lang.JSerializable
-import com.hulu.neutrino.{ScalaModule, SerializableModule}
 import com.hulu.neutrino.serializableprovider.{SerializableProviderFactory, SerializableProviderTypeListener}
 
 class SerializableProviderModule(serializableProviderFactory: SerializableProviderFactory)
