@@ -5,14 +5,12 @@ dependencies {
 
     api "net.codingwell:scala-guice_${scalaBinaryVersion}:${scalaGuiceVersion}"
     api "com.google.inject:guice:${guiceVersion}"
+    api 'org.apache.commons:commons-lang3:3.11'
 
     provided "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
     provided "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
     provided "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
     api "com.typesafe.scala-logging:scala-logging_${scalaBinaryVersion}:3.9.0"
-
-    api "com.google.inject:guice:${guiceVersion}"
-    api 'org.apache.commons:commons-lang3:3.11'
 
     testCompile "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
     testCompile "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
