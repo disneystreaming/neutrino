@@ -27,7 +27,7 @@ A dependency injection (DI) framework for apache spark
 ## Binary Releases
 Currently, the project is built based on apache spark 2.3 and scala 2.11, and we are working to release it with more spark and scala versions.
 
-You can consume it with maven like this:
+You can add the dependency with maven like this:
 ```xml
 <dependency>
     <groupId>com.hulu.neutrino</groupId>
@@ -52,16 +52,16 @@ As we know, [dependency injection](https://en.wikipedia.org/wiki/Dependency_inje
 
 There are some mature dependency injection frameworks in the JVM world, such as [Guice](https://github.com/google/guice) and [Spring framework](https://docs.spring.io/spring-framework/docs/current/reference/html/core.html), which are all designed to work properly in a single JVM process.
 
-A spark job is a distributed application that requires the collaboration of multiple JVMs. Under such circumstances, it is so common to pass some object from the driver to executors, and spark requires the passed object and all its direct or in-direct dependencies to be serializable (as described by the following picture), which needs quite a lot of efforts. Not to mention if the checkpoint is enabled in spark streaming, more objects need to be serialized. Normal DI frameworks can't handle it for us.
+A spark job is a distributed application that requires the collaboration of multiple JVMs. Under such circumstances, it is so common to pass some object from the driver to executors, and spark requires the passed object and all its direct or in-direct dependencies to be serializable (as described by the following picture), which needs quite a lot of efforts. Not to mention if the checkpoint is enabled in spark streaming, more objects need to be serialized. Normal DI frameworks can't handle it for these scenarios.
 
 ![serialize all dependencies](./images/deps_serialization.png)
 
 # What can the neutrino framework do
-The neutrino framework is designed to relieve the serialization work in spark application. In fact, in most cases except for the data object (such as elements in RDD), our framework will handle the serialization/deserialization work automatically (include normal object serialization and checkpoint).
+The neutrino framework is designed to relieve the serialization work from spark application. In fact, in most cases except for the data object (such as elements in RDD), our framework will handle the serialization/deserialization work automatically (including normal object serialization and checkpoint).
 
-And the framework also provides some handy DI object scope management features, such as Singleton Scope per JVM, StreamingBatch scope (reuse the object in the same spark streaming batch per JVM).
+The framework also provides some handy DI object scope management features, such as Singleton Scope per JVM, StreamingBatch scope (reuse the object in the same spark streaming batch per JVM).
 
-In addition, the spark key utility object such as SparkContext, SparkSession, StreamingContext are also injectable, which provides more flexibility for the orchestration of the spark job.
+In addition, the spark key utility objects such as SparkContext, SparkSession, StreamingContext are also injectable, which provides more flexibility for the orchestration of the spark job.
 
 # How does the neutrino handle the serialization problem
 
@@ -71,7 +71,7 @@ The neutrino is built based on [Guice framework](https://github.com/google/guice
 
 ![serialize creation method](./images/serialize_creation_method.png)
 
-If an object is about to be passed to another JVM, instead of serializing the object and its dependencies, the neutrino framework remembers the creation method of the object, passes the information to the target JVM, and recreates it and all its dependencies with the graph there in the same way, The object even doesn't have to be serializable, all of which is done automatically by the framework.
+If an object is about to be passed to another JVM, instead of serializing the object and its dependencies, the neutrino framework remembers the creation method of the object, passes the information to the target JVM, and recreates it along with all dependencies with the same dependency graph there. The object doesn't even have to be serializable, all of which is done automatically by the framework.
 
 Here are some examples:
 
@@ -120,7 +120,7 @@ class DbConnectionProvider @Inject()(dbConfig: DbConfig) extends Provider[java.s
         DriverManager.getConnection(
             dbConfig.url,
             dbConfig.userName,
-            dbConfig.password);
+            dbConfig.password)
     }
 }
 ```
@@ -130,14 +130,14 @@ class FilterModule(dbConfig: DbConfig) extends SparkModule {
     override def configure(): Unit = {
         bind[DbConfig].toInstance(dbConfig)
         bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
-        // the magic here
+        // the magic is here
         bind[EventFilter[TestEvent]].withSerializableWrapper.to[DbUserWhiteListsEventFilter].in[SingletonScope]
     }
 }
 ```
 The extension method `withSerializableWrapper` will generate a serializable wrapper with the same interface (`EventFilter[TestEvent]`) to replace the actual binding. This wrapper object is small, serializable, and contains the creation info of the target object. When it is used in the driver, it is just a proxy to the actual object, but while passed to the executors, it will create the same object with the dependency graph there after deserialization.
 
-And since the scope for the object `EventFilter[TestEvent]` is `SingletonScope` (singleton per JVM, including both the driver and executor JVMs), the same object would be reused if there is already one there. While with normal serialization way (no neutrino support), a new object will be created every time it is passed to the executors.
+And since the scope for the object `EventFilter[TestEvent]` is `SingletonScope` (singleton per driver and executor JVM), the same object would be reused if there is already one there. While with normal serialization way (no neutrino support), a new object will be created every time it is passed to the executors.
 
 Since `DbUserWhiteListsEventFilter` is created with the graph per JVM, so all its dependencies even the `java.sql.Connection` can be injected, which will also be created per JVM according to the binding defined in the module.
 
@@ -219,7 +219,7 @@ With the `StreamingBatch` scope, the instance for `EventFilter[TestEvent]` will 
 
 # Other features
 ## Some key spark objects are also injectable
-These injectable objects include SparkSession, SparkContext, StreamingContext, which makes the spark application more flexible.
+These injectable objects include SparkSession, SparkContext, StreamingContext, which make the spark application more flexible.
 
 With it, we can even make `DStream[T]` or `RDD[T]` injectable. [Here](./examples/src/main/scala/com/hulu/neutrino/example/TestEventStreamProvider.scala) is an example.
 
@@ -235,7 +235,7 @@ injectorBuilder.prepareInjectors()
 Note: All children injectors belonged to the same root injector are in the same dependency graph, and all of them are serializable.
 
 ## Multiple dependency graphs in a single job
-In most cases, we only need a single dependency graph in a spark job, but if there is any necessity to separate the dependencies between different logic, the neutrino also provides a way to create separate graphs. All you need to do is provide a different name for each graph. The name for the default graph is "default".
+In most cases, we only need a single dependency graph in a spark job, but if there is any necessity to separate the dependencies between different logic, the neutrino also provides a way to create separate graphs. All you need to do is to provide a different name for each graph. The name for the default graph is "default".
 
 Here is an example
 ```scala
@@ -251,4 +251,4 @@ injectorBuilder.prepareInjectors()
 
 // any spark logic
 ```
-This feature may be useful in spark test cases. Under the test circumstances, a SparkContext object will be reused to run multiple test jobs, then different names have to be specified to distinguish them.
+This feature may be useful in spark test cases. Under the test circumstances, a SparkContext object will be reused to run multiple test jobs, then different names have to be specified to differentiate them.

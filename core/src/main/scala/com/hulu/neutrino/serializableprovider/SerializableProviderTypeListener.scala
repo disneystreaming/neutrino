@@ -23,7 +23,7 @@ object SerializableProviderTypeListener {
                 Key.get(requestType)
             }
         } else {
-            throw new RuntimeException(s"unsupported injected type: ${injectedParameter.getType}");
+            throw new RuntimeException(s"unsupported injected type: ${injectedParameter.getType}")
         }
     }
 }
