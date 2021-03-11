@@ -57,7 +57,7 @@ A spark job is a distributed application that requires the collaboration of mult
 ![serialize all dependencies](./images/deps_serialization.png)
 
 # What can the neutrino framework do
-The neutrino framework is designed to relieve the serialization work from spark application. In fact, in most cases except for the data object (such as elements in RDD), our framework will handle the serialization/deserialization work automatically (including normal object serialization and checkpoint).
+The neutrino framework is a [Guice](https://github.com/google/guice) based dependency injection framework for apache spark and is designed to relieve the serialization work of development. More specifically, it will handle the serialization/deserialization work for the DI-generated objects automatically during the process of checkpoint recovery and object transmission across JVMs.
 
 The framework also provides some handy DI object scope management features, such as Singleton Scope per JVM, StreamingBatch scope (reuse the object in the same spark streaming batch per JVM).
 
