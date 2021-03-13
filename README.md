@@ -26,7 +26,6 @@ A dependency injection (DI) framework for apache spark
 
 # Essential Information
 ## Binary Releases
-Currently, the project is built based on apache spark 2.3 and scala 2.11, and we are working to release it with more spark and scala versions.
 
 You can add the dependency with maven like this:
 ```xml
@@ -47,7 +46,7 @@ for sbt
 libraryDependencies += "com.hulu.neutrino" % s"core_${scalaVersion}" % s"${sparkVersion}_0.3.2-SNAPSHOT"
 ```
 
-Note: The supported values for `scalaVersion` and `sparkVersion`:
+Note: The supported values for `scalaVersion` and `sparkVersion` are:
 
 | Name | Values |
 |:--:|:--:|

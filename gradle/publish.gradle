@@ -23,6 +23,16 @@ publishing {
             from components.java
             pom.withXml {
                 def root = asNode()
+                project.configurations.provided.allDependencies.each { dep ->
+                    root.dependencies.'*'.last() + {
+                        delegate.dependency {
+                            delegate.groupId dep.group
+                            delegate.artifactId dep.name
+                            delegate.version dep.version
+                            delegate.scope 'provided'
+                        }
+                    }
+                }
                 root.appendNode('description', 'A dependency injection framework for apache spark')
                 root.children().last() + pomConfig
             }
