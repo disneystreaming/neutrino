@@ -58,5 +58,5 @@ ext {
     scoveragePluginVersion = '5.0.0'
     guiceVersion = '4.2.3'
     scalaGuiceVersion = '4.2.11'
-    scoverageVersion = '1.4.2'
+    scoverageVersion = '1.4.1'
 }
