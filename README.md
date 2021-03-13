@@ -49,8 +49,10 @@ libraryDependencies += "com.hulu.neutrino" % s"core_${scalaVersion}" % s"${spark
 
 Note: The supported values for `scalaVersion` and `sparkVersion`:
 
-| scalaVersion   | 2.11  2.12      |
-| sparkVersion   | 2.3  2.4        |
+| Name | Values |
+|:--:|:--:|
+| scalaVersion | 2.11  2.12 |
+| sparkVersion | 2.3  2.4   |
 
 # Why it is so difficult to apply DI on apache spark
 
