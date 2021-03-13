@@ -131,11 +131,11 @@ class FilterModule(dbConfig: DbConfig) extends SparkModule {
         bind[DbConfig].toInstance(dbConfig)
         bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
         // the magic is here
-        bind[EventFilter[TestEvent]].withSerializableWrapper.to[DbUserWhiteListsEventFilter].in[SingletonScope]
+        bind[EventFilter[TestEvent]].withSerializableProxy.to[DbUserWhiteListsEventFilter].in[SingletonScope]
     }
 }
 ```
-The extension method `withSerializableWrapper` will generate a serializable wrapper with the same interface (`EventFilter[TestEvent]`) to replace the actual binding. This wrapper object is small, serializable, and contains the creation info of the target object. When it is used in the driver, it is just a proxy to the actual object, but while passed to the executors, it will create the same object with the dependency graph there after deserialization.
+The extension method `withSerializableProxy` will generate a serializable proxy with the same interface (`EventFilter[TestEvent]`) to replace the actual binding. This proxy object is small, serializable, and contains the creation info of the target object. When it is used in the driver, it is just a proxy to the actual object, but while passed to the executors, it will create the same object with the dependency graph there after deserialization.
 
 And since the scope for the object `EventFilter[TestEvent]` is `SingletonScope` (singleton per driver and executor JVM), the same object would be reused if there is already one there. While with normal serialization way (no neutrino support), a new object will be created every time it is passed to the executors.
 
@@ -144,7 +144,7 @@ Since `DbUserWhiteListsEventFilter` is created with the graph per JVM, so all it
 **There is only one limitation** --- all the modules creating the dependency graph have to be serializable (the base class `SparkModule` has already implemented the `java.io.Serializable`), which is rather easy to handle. For the above example, the only thing that needs to be serialized is `DbConfig`.
 
 ## Advanced usage for automatic serialization handling
-The auto-generated serializable wrapper assumes the binding type is an interface (or trait for scala). If it is not the case, like some concrete or final class, the neutrino framework provides a way to get a serializable `SerializableProvider[T]` instance which contains the creation method of the target object, and this provider object can be used to pass around JVMs.
+The auto-generated serializable proxy assumes the binding type is an interface (or trait for scala). If it is not the case, like some concrete or final class, the neutrino framework provides a way to get a serializable `SerializableProvider[T]` instance which contains the creation method of the target object, and this provider object can be used to pass around JVMs.
 
 (Note: in native Guice API, we can also get a provider `Provider[T]` for the instance, but the provider is not serializable)
 
@@ -179,7 +179,7 @@ eventStream.map { e =>
 Currently, the serializable `Provider[T]` can only be retrieved via annotation `InjectSerializableProvider` on a setter method.
 
 ## Example: recover the job from spark checkpoint
-Sometimes we need to enable the checkpoint in case of job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for the injectors and all objects wrapped with auto-generated wrappers or serializable providers. Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
+Sometimes we need to enable the checkpoint in case of job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for the injectors and all objects wrapped with auto-generated proxies or serializable providers. Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
 
 Here is an example of how to do that:
 ```scala
@@ -216,7 +216,7 @@ class FilterModule(dbConfig: DbConfig) extends SparkModule {
         bind[DbConfig].toInstance(dbConfig)
         bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
         // just change the scope from SingletonScope to StreamingBatch
-        bind[EventFilter[TestEvent]].withSerializableWrapper.to[DbUserWhiteListsEventFilter].in[StreamingBatch]
+        bind[EventFilter[TestEvent]].withSerializableProxy.to[DbUserWhiteListsEventFilter].in[StreamingBatch]
     }
 }
 ```
