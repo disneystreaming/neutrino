@@ -3,6 +3,8 @@ package com.hulu.neutrino.serializableprovider
 import com.google.common.base.Preconditions
 import com.google.inject.{Binder, Key}
 import com.hulu.neutrino.lang.JAnnotation
+import com.hulu.neutrino._
+import com.hulu.neutrino.annotation.Wrapper
 import com.hulu.neutrino.{ScalaPrivateModule, SingletonScope}
 import net.codingwell.scalaguice.{InternalModule, typeLiteral}
 
@@ -16,11 +18,12 @@ trait InjectableSerializableProviderModule[B <: Binder] { module: InternalModule
 
         module.binderAccess.install(new ScalaPrivateModule { inner =>
             override def configure(): Unit = {
-                inner.bind[T].to(key)
+                inner.bind[T].annotatedWith(classOf[Wrapper]).to(key)
+
                 inner.bind[InjectableSerializableProviderProvider[T]].in[SingletonScope]
                 inner.bind[SerializableProvider[T]]
                     .toProvider[InjectableSerializableProviderProvider[T]].in[SingletonScope]
-                if (key.getAnnotation != null || key.getAnnotationType != null) {
+                if (key.hasAnnotation) {
                     val providerTypeLiteral = typeLiteral[SerializableProvider[T]]
                     val replacedKey = key.ofType(providerTypeLiteral)
                     inner.bind(replacedKey)

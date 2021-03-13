@@ -21,10 +21,10 @@ class SparkModuleTest extends SparkModule {
         install(new SparkPrivateModule { inner =>
             override def configure(): Unit = {
                 // The keyword "this" need to be here to call the methods of the inner class instead of the outer ones
-                inner.bind[TestInterface].annotatedWith[Wrapper].withSerializableWrapper.to[TestImpl].in[SingletonScope]
-                inner.bind[TestInterface].annotatedWith(classOf[Wrapper]).withSerializableWrapper.to[TestImpl].in[SingletonScope]
-                inner.bind[TestInterface].annotatedWithName("hello").withSerializableWrapper.to[TestImpl].in[SingletonScope]
-                inner.bind[TestInterface].annotatedWith(Names.named("world")).withSerializableWrapper.to[TestImpl].in[SingletonScope]
+                inner.bind[TestInterface].annotatedWith[Wrapper].withSerializableProxy.to[TestImpl].in[SingletonScope]
+                inner.bind[TestInterface].annotatedWith(classOf[Wrapper]).withSerializableProxy.to[TestImpl].in[SingletonScope]
+                inner.bind[TestInterface].annotatedWithName("hello").withSerializableProxy.to[TestImpl].in[SingletonScope]
+                inner.bind[TestInterface].annotatedWith(Names.named("world")).withSerializableProxy.to[TestImpl].in[SingletonScope]
             }
         })
     }

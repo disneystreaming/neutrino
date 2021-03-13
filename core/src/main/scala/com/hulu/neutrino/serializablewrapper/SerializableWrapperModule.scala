@@ -11,6 +11,6 @@ trait SerializableWrapperModule[B <: Binder] {
     module: InternalModule[B] =>
 
     implicit class ScalaLinkedBindingBuilderSerializableWrapper[T](private val builder: ScalaLinkedBindingBuilder[T]) {
-        def withSerializableWrapper: ScalaLinkedBindingBuilder[T] = macro SerializableWrapperModuleMacro.withSerializableWrapperImpl[T]
+        def withSerializableProxy: ScalaLinkedBindingBuilder[T] = macro SerializableWrapperModuleMacro.withSerializableProxyImpl[T]
     }
 }

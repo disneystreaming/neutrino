@@ -7,6 +7,6 @@ class FilterModule(dbConfig: DbConfig) extends SparkModule {
     override def configure(): Unit = {
         bind[DbConfig].toInstance(dbConfig)
         bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
-        bind[EventFilter[TestEvent]].withSerializableWrapper.to[DbUserWhiteListsEventFilter].in[StreamingBatch]
+        bind[EventFilter[TestEvent]].withSerializableProxy.to[DbUserWhiteListsEventFilter].in[StreamingBatch]
     }
 }

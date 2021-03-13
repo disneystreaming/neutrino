@@ -8,6 +8,6 @@ class ConsumerModule(kafkaProducerConfig: KafkaProducerConfig, topic: String) ex
         bind[KafkaTopic].toInstance(KafkaTopic(topic))
         bind[KafkaProducerConfig].toInstance(kafkaProducerConfig)
         bind[Producer[String, String]].toProvider[KafkaProducerProvider].in[SingletonScope]
-        bind[EventConsumer[TestEvent]].withSerializableWrapper.to[KafkaEventConsumer[TestEvent]].in[SingletonScope]
+        bind[EventConsumer[TestEvent]].withSerializableProxy.to[KafkaEventConsumer[TestEvent]].in[SingletonScope]
     }
 }

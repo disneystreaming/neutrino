@@ -41,7 +41,7 @@ object SerializableWrapperModuleMacro {
         Key.get(typeLiteral[T], Names.named(nameValue))
     }
 
-    def withSerializableWrapperImpl[T: c.WeakTypeTag](c: whitebox.Context): c.Expr[ScalaLinkedBindingBuilder[T]] = {
+    def withSerializableProxyImpl[T: c.WeakTypeTag](c: whitebox.Context): c.Expr[ScalaLinkedBindingBuilder[T]] = {
 
         import c.universe._
 

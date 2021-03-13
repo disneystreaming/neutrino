@@ -1,6 +1,6 @@
 package com.hulu
 
-import com.google.inject.Module
+import com.google.inject.{Key, Module}
 import com.hulu.neutrino.injectorbuilder.SparkInjectorBuilder
 import com.hulu.neutrino.lang.JSerializable
 import net.codingwell.scalaguice.KeyExtensions._
@@ -22,6 +22,12 @@ package object neutrino {
         val builderNameMap = new mutable.WeakHashMap[SparkContext, mutable.Set[String]]()
     }
 
+    implicit class KeyExtensions[T](private val key: Key[T]) extends AnyVal {
+        def hasAnnotation: Boolean = {
+            key.getAnnotation != null || key.getAnnotationType != null
+        }
+    }
+
     implicit class SparkSessionExtensions(private val sparkSession: SparkSession) extends AnyVal {
         def newInjectorBuilder(name: String = "default"): SparkInjectorBuilder = {
             if (!SparkSessionExtensions.builderNameMap.contains(sparkSession.sparkContext)) {
@@ -35,6 +41,13 @@ package object neutrino {
             }
 
             new SparkInjectorBuilder(sparkSession, name)
+        }
+
+        def newSingleInjector(builderName: String, modules: SerializableModule*): SparkInjector = {
+            val builder = newInjectorBuilder(builderName)
+            val injector = builder.newRootInjector(modules:_*)
+            builder.prepareInjectors()
+            injector
         }
 
         def newSingleInjector(modules: SerializableModule*): SparkInjector = {
