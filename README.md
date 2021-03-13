@@ -144,30 +144,35 @@ Since `DbUserWhiteListsEventFilter` is created with the graph per JVM, so all it
 **There is only one limitation** --- all the modules creating the dependency graph have to be serializable (the base class `SparkModule` has already implemented the `java.io.Serializable`), which is rather easy to handle. For the above example, the only thing that needs to be serialized is `DbConfig`.
 
 ## Advanced usage for automatic serialization handling
-The auto-generated serializable wrapper assumes the binding type is an interface (or trait for scala). If it is not the case, like some concrete or final class, the neutrino framework provides a way to get a serializable `Provider[T]` instance which contains the creation method of the target object, and this provider object can be used to pass around JVMs.
+The auto-generated serializable wrapper assumes the binding type is an interface (or trait for scala). If it is not the case, like some concrete or final class, the neutrino framework provides a way to get a serializable `SerializableProvider[T]` instance which contains the creation method of the target object, and this provider object can be used to pass around JVMs.
 
-(Note: in native Guice API, we can also get a provider for the instance, but the provider is not serializable)
+(Note: in native Guice API, we can also get a provider `Provider[T]` for the instance, but the provider is not serializable)
 
 Here is an example:
 ```scala
-final class EventProcessor {
-    def process(event: TestEvent)
+final class EventProcessor @Inject()() {
+    def process(event: TestEvent): Unit = {
+        // processing logic
+    }
 }
 
-class StreamHandler {
-    private var provider: Provider[EventProcessor]
-    
-    @InjectSerializableProvider
-    def setProvider(provider: Provider[EventProcessor]): Unit = {
-        this.provider = provider
+class EventProcessorModule extends SparkModule {
+    override def configure(): Unit = {
+        bind[EventProcessor].in[SingletonScope]
+        
+        // enable the injection of SerializableProvider[EventProcessor]
+        bindSerializableProvider[EventProcessor]
     }
-    
-    def handleStream(eventStream: DStream[TestEvent]): Unit = {
-        val localProvider = provider
-        eventStream.map { e =>
-            localProvider.get().process(e)
-        }
-    }
+}
+
+val injectorBuilder = sparkSession.newInjectorBuilder()
+val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
+injectorBuilder.prepareInjectors()
+
+val provider = injector.instance[SerializableProvider[EventProcessor]]
+
+eventStream.map { e =>
+    provider.get().process(e)
 }
 ```
 

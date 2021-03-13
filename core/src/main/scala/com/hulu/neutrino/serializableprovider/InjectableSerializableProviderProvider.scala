@@ -1,6 +1,6 @@
 package com.hulu.neutrino.serializableprovider
 
-import com.hulu.neutrino.annotation.{InjectSerializableProvider, Wrapper}
+import com.hulu.neutrino.annotation.{InjectSerializableProvider, Mark}
 
 import javax.inject.{Inject, Provider}
 
@@ -9,7 +9,7 @@ class InjectableSerializableProviderProvider[T] @Inject() () extends Provider[Se
     private var provider: SerializableProvider[T] = _
 
     @InjectSerializableProvider
-    def setSerializableProvider(@Wrapper provider: SerializableProvider[T]): Unit = {
+    def setSerializableProvider(@Mark provider: SerializableProvider[T]): Unit = {
         this.provider = provider
     }
 

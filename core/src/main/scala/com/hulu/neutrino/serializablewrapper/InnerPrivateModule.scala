@@ -1,8 +1,8 @@
 package com.hulu.neutrino.serializablewrapper
 
 import com.google.inject.Key
+import com.hulu.neutrino.annotation.Mark
 import com.hulu.neutrino.{SingletonScope, SparkPrivateModule}
-import com.hulu.neutrino.annotation.Wrapper
 import com.hulu.neutrino.serializableprovider.SerializableProvider
 import com.typesafe.scalalogging.StrictLogging
 import net.codingwell.scalaguice.typeLiteral
@@ -14,8 +14,8 @@ class InnerPrivateModule[IA : TypeTag](nestedKey: Key[IA], actualKey: Key[IA], f
     override def configure(): Unit = {
         logger.info(s"nestedKey: ${nestedKey} actualKey: ${actualKey}")
 
-        bind[IA].annotatedWith[Wrapper].to(nestedKey)
-        bind[SerializableProvider[IA] => IA].annotatedWith[Wrapper].toInstance(func)
+        bind[IA].annotatedWith[Mark].to(nestedKey)
+        bind[SerializableProvider[IA] => IA].annotatedWith[Mark].toInstance(func)
         bind[SerializableWrapperProvider[IA]].in[SingletonScope]
         bind(actualKey).toProvider(typeLiteral[SerializableWrapperProvider[IA]]).in(classOf[SingletonScope])
         // expose the actual binding

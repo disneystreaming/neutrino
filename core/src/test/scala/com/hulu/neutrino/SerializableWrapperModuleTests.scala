@@ -1,7 +1,7 @@
 package com.hulu.neutrino
 
 import com.google.inject.name.Names
-import com.hulu.neutrino.annotation.Wrapper
+import com.hulu.neutrino.annotation.Mark
 import org.junit.runner.RunWith
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.FunSuite
@@ -21,8 +21,8 @@ class SparkModuleTest extends SparkModule {
         install(new SparkPrivateModule { inner =>
             override def configure(): Unit = {
                 // The keyword "this" need to be here to call the methods of the inner class instead of the outer ones
-                inner.bind[TestInterface].annotatedWith[Wrapper].withSerializableProxy.to[TestImpl].in[SingletonScope]
-                inner.bind[TestInterface].annotatedWith(classOf[Wrapper]).withSerializableProxy.to[TestImpl].in[SingletonScope]
+                inner.bind[TestInterface].annotatedWith[Mark].withSerializableProxy.to[TestImpl].in[SingletonScope]
+                inner.bind[TestInterface].annotatedWith(classOf[Mark]).withSerializableProxy.to[TestImpl].in[SingletonScope]
                 inner.bind[TestInterface].annotatedWithName("hello").withSerializableProxy.to[TestImpl].in[SingletonScope]
                 inner.bind[TestInterface].annotatedWith(Names.named("world")).withSerializableProxy.to[TestImpl].in[SingletonScope]
             }

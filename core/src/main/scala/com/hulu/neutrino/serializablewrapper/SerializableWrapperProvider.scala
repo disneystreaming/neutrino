@@ -1,16 +1,16 @@
 package com.hulu.neutrino.serializablewrapper
 
 import com.google.inject.Provider
-import com.hulu.neutrino.annotation.{InjectSerializableProvider, Wrapper}
+import com.hulu.neutrino.annotation.{InjectSerializableProvider, Mark}
 import com.hulu.neutrino.serializableprovider.SerializableProvider
 
 import javax.inject.Inject
 
-class SerializableWrapperProvider[T] @Inject() (@Wrapper func: SerializableProvider[T] => T) extends Provider[T] {
+class SerializableWrapperProvider[T] @Inject() (@Mark func: SerializableProvider[T] => T) extends Provider[T] {
     private var serializableProvider: SerializableProvider[T] = _
 
     @InjectSerializableProvider
-    def setProvider(@Wrapper serializableProvider: SerializableProvider[T]): Unit = {
+    def setProvider(@Mark serializableProvider: SerializableProvider[T]): Unit = {
         this.serializableProvider = serializableProvider
     }
 
