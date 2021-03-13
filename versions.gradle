@@ -4,6 +4,11 @@ project.ext.scalaVersionMap = [
     '2.13': '2.13.5'
 ]
 
+project.ext.sparkVersionMap = [
+    '2.3': '2.3.3',
+    '2.4': '2.4.5'
+]
+
 String getScalaBinaryVersion() {
     if (project.hasProperty("scala-version")) {
         def scalaBinaryVersion = project.property("scala-version")
@@ -21,12 +26,21 @@ String getScalaVersion() {
     return project.ext.scalaVersionMap[getScalaBinaryVersion()]
 }
 
-String getSparkVersion() {
+String getSparkMinorVersion() {
     if (project.hasProperty("spark-version")) {
-        return project.property("spark-version")
+        def sparkMinorVersion = project.property("spark-version")
+        if (project.ext.sparkVersionMap.containsKey(sparkMinorVersion)) {
+            return sparkMinorVersion
+        } else {
+            throw new RuntimeException("unknown spark version $sparkMinorVersion")
+        }
     } else {
-        return '2.3.3'
+        return '2.3'
     }
+}
+
+String getSparkVersion() {
+    return project.ext.sparkVersionMap[getSparkMinorVersion()]
 }
 
 ext {
@@ -34,7 +48,7 @@ ext {
     scalaVersion = getScalaVersion()
     scalaBinaryVersion = getScalaBinaryVersion()
     sparkVersion = getSparkVersion()
-    sparkTestVersion = "${getSparkVersion()}_0.14.0"
+    sparkTestVersion = "${getSparkVersion()}_0.14.0".toString()
     scalaTestVersion = '3.0.8'
     junitVersion = '4.12'
     slf4jVersion = '1.7.28'
@@ -44,4 +58,5 @@ ext {
     scoveragePluginVersion = '5.0.0'
     guiceVersion = '4.2.3'
     scalaGuiceVersion = '4.2.11'
+    scoverageVersion = '1.4.2'
 }

@@ -1,6 +1,6 @@
 apply plugin: 'org.scoverage'
 
 scoverage {
-    scoverageVersion = '1.4.1'
+    scoverageVersion = rootProject.ext.scoverageVersion
     scoverageScalaVersion = scalaBinaryVersion
 }

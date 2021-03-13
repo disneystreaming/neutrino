@@ -1,5 +1,9 @@
 if (project.ext.scalaSource) {
-    apply from: file("$rootDir/gradle/scoverage.gradle")
+    // currently, there is some issue to run scoverage against scala 2.12
+    // we are trying to fix it
+    if (rootProject.ext.scalaBinaryVersion == '2.11') {
+        apply from: file("$rootDir/gradle/scoverage.gradle")
+    }
 } else {
     apply from: file("$rootDir/gradle/jacoco.gradle")
 }
