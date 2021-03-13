@@ -7,19 +7,20 @@ A dependency injection (DI) framework for apache spark
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Essential Information](#essential-information)
-    - [Binary Releases](#binary-releases)
+  - [Binary Releases](#binary-releases)
 - [Why it is so difficult to apply DI on apache spark](#why-it-is-so-difficult-to-apply-di-on-apache-spark)
 - [What can the neutrino framework do](#what-can-the-neutrino-framework-do)
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
-    - [Example: handle serialization automatically](#example-handle-serialization-automatically)
-    - [Advanced usage for automatic serialization handling](#advanced-usage-for-automatic-serialization-handling)
-    - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
+  - [Example: handle serialization automatically](#example-handle-serialization-automatically)
+  - [Advanced usage for automatic serialization handling](#advanced-usage-for-automatic-serialization-handling)
+  - [Example: bind serializable proxy and provider with annotations](#example-bind-serializable-proxy-and-provider-with-annotations)
+  - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
 - [New scopes](#new-scopes)
-    - [Example: StreamingBatch scope](#example-streamingbatch-scope)
+  - [Example: StreamingBatch scope](#example-streamingbatch-scope)
 - [Other features](#other-features)
-    - [Some key spark objects are also injectable](#some-key-spark-objects-are-also-injectable)
-    - [Injector Hierarchy / Child Injector](#injector-hierarchy--child-injector)
-    - [Multiple dependency graphs in a single job](#multiple-dependency-graphs-in-a-single-job)
+  - [Some key spark objects are also injectable](#some-key-spark-objects-are-also-injectable)
+  - [Injector Hierarchy / Child Injector](#injector-hierarchy--child-injector)
+  - [Multiple dependency graphs in a single job](#multiple-dependency-graphs-in-a-single-job)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -98,8 +99,18 @@ val eventStream: DStream[TestEvent] = ...
 eventStream.filter(e => filter.filter(e))
 
 // OR
-DStream[TestEvent]
+eventStream
     .filter(e => injector.instance[EventFilter[TestEvent]].filter(e))
+
+// injectable for constructors
+class StreamHandler @Inject() (filter: EventFilter[TestEvent]) {
+    def handle(eventStream: DStream[TestEvent]): Unit = {
+        // assign it to a local variable to avoid serialization for the StreamHandler class
+        val localFilter = filter
+        eventStream
+            .filter(e => localFilter.filter(e))
+    }
+}
 ```
 Generally, the `EventFilter[TestEvent]` instance must implement the `java.io.Serializable` interface since it is passed from the driver to executors. But with the neutrino framework, we don't need to do that.
 ```scala
@@ -131,11 +142,12 @@ class FilterModule(dbConfig: DbConfig) extends SparkModule {
         bind[DbConfig].toInstance(dbConfig)
         bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
         // the magic is here
+        // The module must extend `SparkModule` or `SparkPrivateModule` to get the method withSerializableProxy
         bind[EventFilter[TestEvent]].withSerializableProxy.to[DbUserWhiteListsEventFilter].in[SingletonScope]
     }
 }
 ```
-The extension method `withSerializableProxy` will generate a serializable proxy with the same interface (`EventFilter[TestEvent]`) to replace the actual binding. This proxy object is small, serializable, and contains the creation info of the target object. When it is used in the driver, it is just a proxy to the actual object, but while passed to the executors, it will create the same object with the dependency graph there after deserialization.
+The extension method `withSerializableProxy` (provided by `SparkModule` or `SparkPrivateModule`) will generate a serializable proxy with the same interface (`EventFilter[TestEvent]`) to replace the actual binding. This proxy object is small, serializable, and contains the creation info of the target object. When it is used in the driver, it is just a proxy to the actual object, but while passed to the executors, it will create the same object with the dependency graph there after deserialization.
 
 And since the scope for the object `EventFilter[TestEvent]` is `SingletonScope` (singleton per driver and executor JVM), the same object would be reused if there is already one there. While with normal serialization way (no neutrino support), a new object will be created every time it is passed to the executors.
 
@@ -161,6 +173,7 @@ class EventProcessorModule extends SparkModule {
         bind[EventProcessor].in[SingletonScope]
         
         // enable the injection of SerializableProvider[EventProcessor]
+        // The module must extend `SparkModule` or `SparkPrivateModule` to get it
         bindSerializableProvider[EventProcessor]
     }
 }
@@ -169,14 +182,64 @@ val injectorBuilder = sparkSession.newInjectorBuilder()
 val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
 injectorBuilder.prepareInjectors()
 
+// get the SerializableProvider from the injector directly
 val provider = injector.instance[SerializableProvider[EventProcessor]]
 
 eventStream.map { e =>
     provider.get().process(e)
 }
+
+// injectable for constructors
+class StreamHandler @Inject() (provider: SerializableProvider[EventProcessor]) {
+    // class body
+}
 ```
 
 Currently, the serializable `Provider[T]` can only be retrieved via annotation `InjectSerializableProvider` on a setter method.
+
+## Example: bind serializable proxy and provider with annotations
+As you know, in the Guice framework, we can bind the same type with different annotations to distinguish them ([Guice doc](https://github.com/google/guice/wiki/BindingAnnotations)), and this feature is also supported for serializable proxy and provide, and in fact, the API is very straightforward.
+
+Here is the example for the usage of the serializable proxy with annotations:
+```scala
+class FilterModule(dbConfig: DbConfig) extends SparkModule {
+    override def configure(): Unit = {
+        bind[DbConfig].toInstance(dbConfig)
+        bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
+        bind[EventFilter[TestEvent]].annotatedWith(Names.named("Hello")).withSerializableProxy.to[DbUserWhiteListsEventFilter].in[SingletonScope]
+    }
+
+// get the serializable proxy from the injector directly
+injector.instance[EventFilter[TestEvent]](Names.named("Hello"))
+
+// injectable for constructors
+class StreamHandler @Inject() (@Named("Hello") filter: EventFilter[TestEvent]) {
+    // class body
+}
+```
+
+Here is the example for the usage of `SerializableProvider[T]` with annotations:
+```scala
+import com.google.inject.name.Names
+
+class EventProcessorModule extends SparkModule {
+    override def configure(): Unit = {
+        bind[EventProcessor].annotatedWith(Names.named("Hello")).in[SingletonScope]
+        
+        // enable the injection of SerializableProvider[EventProcessor]
+        // The module must extend `SparkModule` or `SparkPrivateModule` to get it
+        bindSerializableProvider[EventProcessor](Names.named("Hello"))
+    }
+}
+
+// get the SerializableProvider from the injector directly
+injector.instance[SerializableProvider[EventProcessor]](Names.named("Hello"))
+
+// injectable for constructors
+class StreamHandler @Inject() (@Named("Hello") provider: SerializableProvider[EventProcessor]) {
+    // class body
+}
+```
 
 ## Example: recover the job from spark checkpoint
 Sometimes we need to enable the checkpoint in case of job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for the injectors and all objects wrapped with auto-generated proxies or serializable providers. Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
