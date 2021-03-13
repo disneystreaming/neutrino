@@ -1,4 +1,4 @@
-package com.hulu.neutrino.serializableprovider
+package com.hulu.neutrino
 
 import com.google.inject.Provider
 import com.hulu.neutrino.lang.JSerializable

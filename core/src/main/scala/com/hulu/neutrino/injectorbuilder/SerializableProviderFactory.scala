@@ -2,8 +2,9 @@ package com.hulu.neutrino.injectorbuilder
 
 import com.google.common.base.Preconditions
 import com.google.inject.Provider
+import com.hulu.neutrino.SerializableProvider
 import com.hulu.neutrino.modulegraph.{GraphProperties, ModuleGraphProvider}
-import com.hulu.neutrino.serializableprovider.{SerializableProvider, SerializableProviderFactory}
+import com.hulu.neutrino.serializableprovider.SerializableProviderFactory
 
 import scala.collection.mutable
 

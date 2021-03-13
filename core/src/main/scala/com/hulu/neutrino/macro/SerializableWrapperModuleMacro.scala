@@ -71,7 +71,7 @@ object SerializableWrapperModuleMacro {
                 import com.hulu.neutrino._
                 import net.codingwell.scalaguice._
                 import scala.reflect.runtime.universe._
-                import com.hulu.neutrino.serializableprovider.SerializableProvider
+                import com.hulu.neutrino.SerializableProvider
                 import com.twitter.chill.ClosureCleaner
 
                 val nestedAnnotation = com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getNestedAnnotation(key)

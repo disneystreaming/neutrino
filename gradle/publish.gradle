@@ -19,7 +19,7 @@ publishing {
     publications {
         binary(MavenPublication) { publication ->
             artifactId="${project.name}_${scalaBinaryVersion}"
-            version="${sparkVersion}_${project.version}"
+            version="${sparkMinorVersion}_${project.version}"
             from components.java
             pom.withXml {
                 def root = asNode()

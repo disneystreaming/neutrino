@@ -2,6 +2,7 @@ package com.hulu.neutrino.serializableprovider
 
 import com.google.inject.spi.{TypeEncounter, TypeListener}
 import com.google.inject.{Key, Provider, TypeLiteral}
+import com.hulu.neutrino.SerializableProvider
 import com.hulu.neutrino.annotation.InjectSerializableProvider
 
 import java.lang.reflect.{Modifier, ParameterizedType}

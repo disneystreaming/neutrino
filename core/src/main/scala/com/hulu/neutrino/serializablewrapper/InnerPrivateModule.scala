@@ -2,8 +2,7 @@ package com.hulu.neutrino.serializablewrapper
 
 import com.google.inject.Key
 import com.hulu.neutrino.annotation.Mark
-import com.hulu.neutrino.{SingletonScope, SparkPrivateModule}
-import com.hulu.neutrino.serializableprovider.SerializableProvider
+import com.hulu.neutrino.{SerializableProvider, SingletonScope, SparkPrivateModule}
 import com.typesafe.scalalogging.StrictLogging
 import net.codingwell.scalaguice.typeLiteral
 

@@ -32,20 +32,25 @@ You can add the dependency with maven like this:
 ```xml
 <dependency>
     <groupId>com.hulu.neutrino</groupId>
-    <artifactId>core</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <artifactId>core_${scalaVersion}</artifactId>
+    <version>${sparkVersion}_0.3.2-SNAPSHOT</version>
 </dependency>
 ```
 
 for gradle
 ```groovy
-compile "com.hulu.neutrino:core:0.3.1-SNAPSHOT"
+compile "com.hulu.neutrino:core_${scalaVersion}:${sparkVersion}_0.3.2-SNAPSHOT"
 ```
 
 for sbt
 ```scala
-libraryDependencies += "com.hulu.neutrino" % "core" % "0.3.1-SNAPSHOT"
+libraryDependencies += "com.hulu.neutrino" % s"core_${scalaVersion}" % s"${sparkVersion}_0.3.2-SNAPSHOT"
 ```
+
+Note: The supported values for `scalaVersion` and `sparkVersion`:
+
+| scalaVersion   | 2.11  2.12      |
+| sparkVersion   | 2.3  2.4        |
 
 # Why it is so difficult to apply DI on apache spark
 

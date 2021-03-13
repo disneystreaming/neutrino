@@ -44,9 +44,11 @@ String getSparkVersion() {
 }
 
 ext {
+    neutrinoVersion = '0.3.2-SNAPSHOT'
     targetJavaVersion = '1.8'
     scalaVersion = getScalaVersion()
     scalaBinaryVersion = getScalaBinaryVersion()
+    sparkMinorVersion = getSparkMinorVersion()
     sparkVersion = getSparkVersion()
     sparkTestVersion = "${getSparkVersion()}_0.14.0".toString()
     scalaTestVersion = '3.0.8'

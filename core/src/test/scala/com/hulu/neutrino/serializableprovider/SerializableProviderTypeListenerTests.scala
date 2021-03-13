@@ -3,6 +3,7 @@ package com.hulu.neutrino.serializableprovider
 import com.google.inject.matcher.Matchers
 import com.google.inject.name.{Named, Names}
 import com.google.inject.{AbstractModule, Guice, Key, Provider}
+import com.hulu.neutrino.SerializableProvider
 import com.hulu.neutrino.annotation.InjectSerializableProvider
 import org.junit.runner.RunWith
 import org.scalamock.scalatest.MockFactory

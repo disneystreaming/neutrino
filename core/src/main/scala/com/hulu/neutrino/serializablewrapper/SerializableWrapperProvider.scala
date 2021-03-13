@@ -1,8 +1,8 @@
 package com.hulu.neutrino.serializablewrapper
 
 import com.google.inject.Provider
+import com.hulu.neutrino.SerializableProvider
 import com.hulu.neutrino.annotation.{InjectSerializableProvider, Mark}
-import com.hulu.neutrino.serializableprovider.SerializableProvider
 
 import javax.inject.Inject
 
