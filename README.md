@@ -8,6 +8,7 @@ A dependency injection (DI) framework for apache spark
 
 - [Essential Information](#essential-information)
   - [Binary Releases](#binary-releases)
+  - [How to build it](#how-to-build-it)
 - [Why it is so difficult to apply DI on apache spark](#why-it-is-so-difficult-to-apply-di-on-apache-spark)
 - [What can the neutrino framework do](#what-can-the-neutrino-framework-do)
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
@@ -32,7 +33,7 @@ You can add the dependency with maven like this:
 <dependency>
     <groupId>com.hulu.neutrino</groupId>
     <artifactId>core_${scalaVersion}</artifactId>
-    <version>${sparkVersion}_0.3.2-SNAPSHOT</version>
+    <version>${sparkVersion}_0.3.3-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -52,6 +53,14 @@ Note: The supported values for `scalaVersion` and `sparkVersion` are:
 |:--:|:--:|
 | scalaVersion | 2.11  2.12 |
 | sparkVersion | 2.0  2.1  2.2  2.3  2.4   |
+
+## How to build it
+```shell
+./gradlew clean build -Pscala-version=${scalaVersion} -Pspark-version=${sparkVersion}
+```
+The default value for `scalaVersion` is `2.11`, and the one for `sparkVersion` is `2.3`.
+
+You can also add an option `-Pfast` to skip all the test cases and code style checks. 
 
 # Why it is so difficult to apply DI on apache spark
 
