@@ -43,7 +43,7 @@ compile "com.hulu.neutrino:core_${scalaVersion}:${sparkVersion}_0.3.2-SNAPSHOT"
 
 for sbt
 ```scala
-libraryDependencies += "com.hulu.neutrino" % s"core_${scalaVersion}" % s"${sparkVersion}_0.3.2-SNAPSHOT"
+libraryDependencies += "com.hulu.neutrino" % "core" % s"${sparkVersion}_0.3.2-SNAPSHOT"
 ```
 
 Note: The supported values for `scalaVersion` and `sparkVersion` are:
@@ -51,7 +51,7 @@ Note: The supported values for `scalaVersion` and `sparkVersion` are:
 | Name | Values |
 |:--:|:--:|
 | scalaVersion | 2.11  2.12 |
-| sparkVersion | 2.3  2.4   |
+| sparkVersion | 2.0  2.1  2.2  2.3  2.4   |
 
 # Why it is so difficult to apply DI on apache spark
 

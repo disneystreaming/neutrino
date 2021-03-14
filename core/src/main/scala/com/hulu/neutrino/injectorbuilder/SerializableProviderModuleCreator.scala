@@ -1,12 +1,12 @@
 package com.hulu.neutrino.injectorbuilder
 
 import com.hulu.neutrino.SerializableModule
-import com.hulu.neutrino.modulegraph.{GraphProperties, ModuleGraphProvider, ModulesCreator}
+import com.hulu.neutrino.graph.{GraphProperties, ModuleGraphProvider, ModulesCreator}
 
-class SerializableProviderModuleCreator(private val moduleGraphProvider: ModuleGraphProvider) extends ModulesCreator {
+private[neutrino] class SerializableProviderModuleCreator(private val moduleGraphProvider: ModuleGraphProvider) extends ModulesCreator {
     override def create(graphProperties: GraphProperties): Seq[SerializableModule] = {
-        Seq[SerializableModule](new SerializableProviderModule(
-            new SerializableProviderFactory.IndexIncrementedSerializableProviderFactory(
+        Seq[SerializableModule](new SerializableProviderTypeListenerModule(
+            new IndexIncrementedSerializableProviderFactory(
                 graphProperties,
                 moduleGraphProvider)))
     }

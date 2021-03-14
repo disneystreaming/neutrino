@@ -1,4 +1,4 @@
-package com.hulu.neutrino.modulegraph
+package com.hulu.neutrino.graph
 
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.esotericsoftware.kryo.{Kryo, KryoSerializable}
@@ -17,14 +17,14 @@ trait GraphProperties {
     def getProperty[T](name: String): Option[T]
 }
 
-class SerializableModuleGraph(private var nodes: Seq[ModuleNode])
+private[neutrino] class SerializableModuleGraph(private var nodes: Seq[ModuleNode])
     extends ModuleGraph
     with JSerializable
     with KryoSerializable
     with GraphProperties {
     Preconditions.checkNotNull(nodes)
 
-    private[neutrino] def this() {
+    def this() {
         this(Seq())
     }
 

@@ -1,4 +1,4 @@
-package com.hulu.neutrino.modulegraph
+package com.hulu.neutrino.graph
 
 import com.google.inject.Key
 import com.google.inject.name.Names
@@ -39,7 +39,7 @@ class ModulesCreatorImpl(name: String, value: String) extends ModulesCreator {
 }
 
 @RunWith(classOf[JUnitRunner])
-class SerializableModuleGraphTests extends FunSuite with MockFactory {
+private[neutrino] class SerializableModuleGraphTests extends FunSuite with MockFactory {
     test("SerializableModuleGraphTests") {
         assertThrows[UnsupportedOperationException] {
             ModuleGraphBuilder.newBuilder().build()

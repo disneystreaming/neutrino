@@ -1,4 +1,4 @@
-package com.hulu.neutrino.modulegraph
+package com.hulu.neutrino.graph
 
 import com.hulu.neutrino.lang.JSerializable
 import com.hulu.neutrino.utils.JFunc
@@ -11,7 +11,7 @@ import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 
-object SerializableModuleGraphProvider extends StrictLogging {
+private[neutrino] object SerializableModuleGraphProvider extends StrictLogging {
     private final val encoder = Base64.getEncoder.withoutPadding()
     private final val decoder = Base64.getDecoder
     def getBroadcastName(graphName: String): String = s"property_${graphName}"
@@ -38,7 +38,7 @@ object SerializableModuleGraphProvider extends StrictLogging {
     }
 }
 
-class SerializableModuleGraphProvider(
+private[neutrino] class SerializableModuleGraphProvider(
     private val sparkSession: SparkSession,
     @transient private val _graph: ModuleGraph,
     private val broadcastName: String)

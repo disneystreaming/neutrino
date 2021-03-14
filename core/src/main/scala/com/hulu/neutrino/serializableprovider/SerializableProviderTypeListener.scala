@@ -7,7 +7,7 @@ import com.hulu.neutrino.annotation.InjectSerializableProvider
 
 import java.lang.reflect.{Modifier, ParameterizedType}
 
-object SerializableProviderTypeListener {
+private[neutrino] object SerializableProviderTypeListener {
     def getKey[T](typeLiteral: TypeLiteral[T], method: java.lang.reflect.Method):Key[_] = {
         val injectedParameter = method.getParameters()(0)
         if (injectedParameter.getDeclaredAnnotations.length > 1) {
@@ -29,7 +29,7 @@ object SerializableProviderTypeListener {
     }
 }
 
-class SerializableProviderTypeListener(serializableProviderFactory: SerializableProviderFactory) extends TypeListener {
+private[neutrino] class SerializableProviderTypeListener(serializableProviderFactory: SerializableProviderFactory) extends TypeListener {
     override def hear[T](typeLiteral: TypeLiteral[T], typeEncounter: TypeEncounter[T]): Unit = {
         var clazz = typeLiteral.getRawType
         while (clazz != null) {

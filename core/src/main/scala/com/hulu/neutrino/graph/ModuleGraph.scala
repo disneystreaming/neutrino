@@ -1,8 +1,8 @@
-package com.hulu.neutrino.modulegraph
+package com.hulu.neutrino.graph
 
 import com.google.inject.Injector
 
-trait ModuleGraph {
+private[neutrino] trait ModuleGraph {
     def injector(id: Int): Injector
     def property[T](name: String): Option[T]
 }

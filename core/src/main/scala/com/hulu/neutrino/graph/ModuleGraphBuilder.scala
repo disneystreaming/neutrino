@@ -1,10 +1,10 @@
-package com.hulu.neutrino.modulegraph
+package com.hulu.neutrino.graph
 
 import com.hulu.neutrino.SerializableModule
 
 import scala.collection.mutable.ListBuffer
 
-object ModuleGraphBuilder {
+private[neutrino] object ModuleGraphBuilder {
 
     trait Builder {
         def rootModules(modules: Seq[SerializableModule]): Int = {
@@ -22,7 +22,7 @@ object ModuleGraphBuilder {
         def build(): ModuleGraph
     }
 
-    private[neutrino] class GraphBuilder extends Builder {
+    class GraphBuilder extends Builder {
         private val nodes: ListBuffer[ModuleNode] = ListBuffer[ModuleNode]()
 
         override def rootModules(modules: Seq[SerializableModule], modulesCreator: ModulesCreator): Int = {
@@ -38,7 +38,7 @@ object ModuleGraphBuilder {
                 throw new IllegalArgumentException("both modules and modulesCreator are null")
             }
 
-            val node = new ModuleNode(parentId, Option(modules), Option(modulesCreator))
+            val node = ModuleNode(parentId, Option(modules), Option(modulesCreator))
             nodes += node
             nodes.size - 1
         }

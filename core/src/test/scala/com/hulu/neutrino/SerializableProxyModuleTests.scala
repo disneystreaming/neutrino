@@ -31,7 +31,7 @@ class SparkModuleTest extends SparkModule {
 }
 
 @RunWith(classOf[JUnitRunner])
-class SerializableWrapperModuleTests extends FunSuite with MockFactory {
+class SerializableProxyModuleTests extends FunSuite with MockFactory {
     test("SerializableWrapperModuleTests") {
         new SparkModuleTest
     }

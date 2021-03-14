@@ -1,4 +1,4 @@
-package com.hulu.neutrino.serializablewrapper
+package com.hulu.neutrino.serializableproxy
 
 import com.google.inject.Key
 import com.hulu.neutrino.annotation.Mark
@@ -15,8 +15,8 @@ class InnerPrivateModule[IA : TypeTag](nestedKey: Key[IA], actualKey: Key[IA], f
 
         bind[IA].annotatedWith[Mark].to(nestedKey)
         bind[SerializableProvider[IA] => IA].annotatedWith[Mark].toInstance(func)
-        bind[SerializableWrapperProvider[IA]].in[SingletonScope]
-        bind(actualKey).toProvider(typeLiteral[SerializableWrapperProvider[IA]]).in(classOf[SingletonScope])
+        bind[SerializableProxyProvider[IA]].in[SingletonScope]
+        bind(actualKey).toProvider(typeLiteral[SerializableProxyProvider[IA]]).in(classOf[SingletonScope])
         // expose the actual binding
         expose(actualKey)
     }

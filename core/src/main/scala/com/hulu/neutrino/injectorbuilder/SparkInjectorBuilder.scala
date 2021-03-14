@@ -1,8 +1,8 @@
 package com.hulu.neutrino.injectorbuilder
 
 import com.google.common.base.Preconditions
-import com.hulu.neutrino.{SerializableModule, SparkEnvironmentModule, SparkInjector}
-import com.hulu.neutrino.modulegraph.{ModuleGraphBuilder, SerializableModuleGraphProvider}
+import com.hulu.neutrino.{SerializableModule, SparkInjector}
+import com.hulu.neutrino.graph.{ModuleGraphBuilder, SerializableModuleGraphProvider}
 import com.hulu.neutrino.scope.StreamingBatchScopeModule
 import org.apache.spark.sql.SparkSession
 
@@ -18,10 +18,10 @@ class SparkInjectorBuilder private[neutrino](private val sparkSession: SparkSess
     def newRootInjector(modules: SerializableModule*): SparkInjector = {
         Preconditions.checkNotNull(modules)
 
-        createChildInjector(-1, modules.+:(new SparkEnvironmentModule(sparkSession)).+:(new StreamingBatchScopeModule))
+        createInjector(-1, modules.+:(new SparkEnvironmentModule(sparkSession)).+:(new StreamingBatchScopeModule))
     }
 
-    override def createChildInjector(parentIndex: Int, modules: Seq[SerializableModule]): SparkInjector = {
+    private[neutrino] override def createInjector(parentIndex: Int, modules: Seq[SerializableModule]): SparkInjector = {
         val providerProxy = new ModuleGraphProviderProxy
         val creator = if (parentIndex == -1) new SerializableProviderModuleCreator(providerProxy) else null
         val injectorIndex = graphBuilder.createChildInjector(parentIndex, modules, creator)

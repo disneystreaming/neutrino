@@ -1,8 +1,9 @@
-package com.hulu.neutrino
+package com.hulu.neutrino.injectorbuilder
 
-import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
+import com.hulu.neutrino.{SingletonScope, SparkModule}
 import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.streaming.StreamingContext
+import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
 
 import javax.inject.Provider
 

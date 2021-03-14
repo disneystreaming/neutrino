@@ -1,7 +1,7 @@
 package com.hulu
 
 import com.google.inject.{Key, Module}
-import com.hulu.neutrino.injectorbuilder.SparkInjectorBuilder
+import com.hulu.neutrino.injectorbuilder.{SparkEnvironmentHolder, SparkInjectorBuilder}
 import com.hulu.neutrino.lang.JSerializable
 import net.codingwell.scalaguice.KeyExtensions._
 import net.codingwell.scalaguice.typeLiteral

@@ -2,7 +2,7 @@ package com.hulu.neutrino.injectorbuilder
 
 import com.google.common.base.Preconditions
 import com.google.inject.Key
-import com.hulu.neutrino.modulegraph.ModuleGraphProvider
+import com.hulu.neutrino.graph.ModuleGraphProvider
 import com.hulu.neutrino.{SerializableModule, SparkInjector}
 
 private[neutrino] class SparkInjectorImpl (
@@ -20,7 +20,7 @@ private[neutrino] class SparkInjectorImpl (
             throw new UnsupportedOperationException("createChildInjector should only be called in master")
         }
 
-        sparkInjectorFactory.createChildInjector(injectorIndex, modules.toSeq)
+        sparkInjectorFactory.createInjector(injectorIndex, modules.toSeq)
     }
 
     override def instanceByKey[T](key: Key[T]): T = graphProvider.moduleGraph.injector(injectorIndex).getInstance(key)

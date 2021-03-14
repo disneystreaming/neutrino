@@ -1,6 +1,6 @@
 package com.hulu.neutrino.`macro`
 
-import com.google.inject.Key
+import com.google.inject.{Key, Module}
 import com.google.inject.name.Names
 import com.hulu.neutrino.lang.JAnnotation
 import com.hulu.neutrino.annotation.{ConcreteNestedAnnotation, NestedAnnotation}
@@ -12,7 +12,7 @@ import scala.reflect.macros.whitebox
 import scala.reflect.runtime.universe._
 
 // scalastyle:off
-object SerializableWrapperModuleMacro {
+object SerializableProxyModuleMacro {
     def getNestedAnnotation[T](key: Key[T]): NestedAnnotation = {
         ConcreteNestedAnnotation.builder()
             .innerAnnotation(key.getAnnotation)
@@ -58,10 +58,10 @@ object SerializableWrapperModuleMacro {
         var keyExpr: c.Tree = null
         builder match {
             case q"$moduleBind($tt) $annotatedWith($at)" => {
-                keyExpr = q"com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getKey[${weakTypeTag}]($at)"
+                keyExpr = q"com.hulu.neutrino.`macro`.SerializableProxyModuleMacro.getKey[${weakTypeTag}]($at)"
             }
             case q"$moduleBind($at)" => {
-                keyExpr = q"com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getKey[${weakTypeTag}]($at)"
+                keyExpr = q"com.hulu.neutrino.`macro`.SerializableProxyModuleMacro.getKey[${weakTypeTag}]($at)"
             }
         }
         val bindingMethod = TermName(s"innerBinding_$line")
@@ -74,7 +74,7 @@ object SerializableWrapperModuleMacro {
                 import com.hulu.neutrino.SerializableProvider
                 import com.twitter.chill.ClosureCleaner
 
-                val nestedAnnotation = com.hulu.neutrino.`macro`.SerializableWrapperModuleMacro.getNestedAnnotation(key)
+                val nestedAnnotation = com.hulu.neutrino.`macro`.SerializableProxyModuleMacro.getNestedAnnotation(key)
                 val nestedKey = com.google.inject.Key.get(typeLiteral[${weakTypeTag}], nestedAnnotation)
                 val func: SerializableProvider[${weakTypeTag}] => ${weakTypeTag} = p => {
                     val serializableProvider: () => ${weakTypeTag} = () => p.get()
@@ -82,7 +82,7 @@ object SerializableWrapperModuleMacro {
                     ${SerializableProxyMacro.createProxy[T](c)(c.Expr[() => T](q"serializableProvider"))}
                 }
 
-                install(new com.hulu.neutrino.serializablewrapper.InnerPrivateModule[${weakTypeTag}](nestedKey, key, func))
+                install(new com.hulu.neutrino.serializableproxy.InnerPrivateModule[${weakTypeTag}](nestedKey, key, func))
 
                 $module.bind[$weakTypeTag].annotatedWith(nestedAnnotation)
              }
