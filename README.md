@@ -12,8 +12,8 @@ A dependency injection (DI) framework for apache spark
 - [Why it is so difficult to apply DI on apache spark](#why-it-is-so-difficult-to-apply-di-on-apache-spark)
 - [What can the neutrino framework do](#what-can-the-neutrino-framework-do)
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
-  - [Example: handle serialization automatically](#example-handle-serialization-automatically)
-  - [Advanced usage for automatic serialization handling](#advanced-usage-for-automatic-serialization-handling)
+  - [Example: handle serialization with serializable proxy](#example-handle-serialization-with-serializable-proxy)
+  - [Example: handle serialization with SerializableProvider[T]](#example-handle-serialization-with-serializableprovidert)
   - [Example: bind serializable proxy and provider with annotations](#example-bind-serializable-proxy-and-provider-with-annotations)
   - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
 - [New scopes](#new-scopes)
@@ -39,15 +39,15 @@ You can add the dependency with maven like this:
 
 for gradle
 ```groovy
-compile "com.hulu.neutrino:core_${scalaVersion}:${sparkVersion}_0.3.2-SNAPSHOT"
+compile "com.hulu.neutrino:core_${scalaVersion}:${sparkVersion}_0.3.3-SNAPSHOT"
 ```
 
 for sbt
 ```scala
-libraryDependencies += "com.hulu.neutrino" % "core" % s"${sparkVersion}_0.3.2-SNAPSHOT"
+libraryDependencies += "com.hulu.neutrino" % "core" % s"${sparkVersion}_0.3.3-SNAPSHOT"
 ```
 
-Note: The supported values for `scalaVersion` and `sparkVersion` are:
+The supported values for `scalaVersion` and `sparkVersion` are:
 
 | Name | Values |
 |:--:|:--:|
@@ -60,7 +60,7 @@ Note: The supported values for `scalaVersion` and `sparkVersion` are:
 ```
 The default value for `scalaVersion` is `2.11`, and the one for `sparkVersion` is `2.3`.
 
-You can also add an option `-Pfast` to skip all the test cases and code style checks. 
+You can also add an option `-Pfast` to skip all the test cases and code style checks to make the build process faster. 
 
 # Why it is so difficult to apply DI on apache spark
 
@@ -68,7 +68,7 @@ As we know, [dependency injection](https://en.wikipedia.org/wiki/Dependency_inje
 
 There are some mature dependency injection frameworks in the JVM world, such as [Guice](https://github.com/google/guice) and [Spring framework](https://docs.spring.io/spring-framework/docs/current/reference/html/core.html), which are all designed to work properly in a single JVM process.
 
-A spark job is a distributed application that requires the collaboration of multiple JVMs. Under such circumstances, it is so common to pass some object from the driver to executors, and spark requires the passed object and all its direct or in-direct dependencies to be serializable (as described by the following picture), which needs quite a lot of efforts. Not to mention if the checkpoint is enabled in spark streaming, more objects need to be serialized. Normal DI frameworks can't handle it for these scenarios.
+A spark job is a distributed application that requires the collaboration of multiple JVMs. Under such circumstances, it is so common to pass some object from the driver to executors, and spark requires the passed object and all its direct or in-direct dependencies to be serializable (as described by the following picture), which may need quite a lot of effort. Not to mention if the checkpoint is enabled in spark streaming, more objects need to be serialized. Normal DI frameworks can't handle it for these scenarios.
 
 ![serialize all dependencies](./images/deps_serialization.png)
 
@@ -87,11 +87,17 @@ The neutrino is built based on [Guice framework](https://github.com/google/guice
 
 ![serialize creation method](./images/serialize_creation_method.png)
 
-If an object is about to be passed to another JVM, instead of serializing the object and its dependencies, the neutrino framework remembers the creation method of the object, passes the information to the target JVM, and recreates it along with all dependencies with the same dependency graph there. The object doesn't even have to be serializable, all of which is done automatically by the framework.
+If an object is about to be passed to another JVM, instead of serializing the object and its dependencies, the neutrino framework remembers the creation method of the object, passes the information to the target JVM, and recreates it along with all dependencies with the same dependency graph out there. The object doesn't have to be serializable, all of which is done automatically by the framework.
+
+And there is also another benefit. Before that a new object will be created every time it is passed to the target JVM, but since this approach introduces a single dependency graph in each JVM, the lifetime or scope of the passed objects in the executos can be managed by the graph out there, For example,
+- Singleton per JVM
+  - If the same object is passed to the target JVM the second time, the existing one could be reused instead of creating a new one.
+- [Streaming batch scope](#example-streamingbatch-scope)
+  - If the same object is passed to the target JVM the second time within the same streaming batch, the existing one could be reused. Otherwise, an new object will be created.
 
 Here are some examples:
 
-## Example: handle serialization automatically
+## Example: handle serialization with serializable proxy
 Consider such a case that there is an event stream, and we'd like to abstract the logic to filter the stream based on a white list of user ids, which is stored in the database. Here is how we implement it with the neutrino.
 
 ```scala
@@ -164,16 +170,16 @@ class FilterModule(dbConfig: DbConfig) extends SparkModule {
 ```
 The extension method `withSerializableProxy` (provided by `SparkModule` or `SparkPrivateModule`) will generate a serializable proxy with the same interface (`EventFilter[TestEvent]`) to replace the actual binding. This proxy object is small, serializable, and contains the creation info of the target object. When it is used in the driver, it is just a proxy to the actual object, but while passed to the executors, it will create the same object with the dependency graph there after deserialization.
 
-And since the scope for the object `EventFilter[TestEvent]` is `SingletonScope` (singleton per driver and executor JVM), the same object would be reused if there is already one there. While with normal serialization way (no neutrino support), a new object will be created every time it is passed to the executors.
+And since the scope for the object `EventFilter[TestEvent]` is `SingletonScope` (singleton per driver and executor JVM), the same object would be reused if there is already one there.
 
-Since `DbUserWhiteListsEventFilter` is created with the graph per JVM, so all its dependencies even the `java.sql.Connection` can be injected, which will also be created per JVM according to the binding defined in the module.
+Since the implementation `DbUserWhiteListsEventFilter` is recreated with the graph per JVM, so all its dependencies even the `java.sql.Connection` can be injected, which will also be created per JVM according to the binding info defined in the module.
 
-**There is only one limitation** --- all the modules creating the dependency graph have to be serializable (the base class `SparkModule` has already implemented the `java.io.Serializable`), which is rather easy to handle. For the above example, the only thing that needs to be serialized is `DbConfig`.
+**There is only one limitation** --- all the modules defining the dependency graph have to be serializable (the base class `SparkModule` has already implemented the `java.io.Serializable`), which is rather easy to handle. For the above example, the only thing that needs to be serialized is `DbConfig`.
 
-## Advanced usage for automatic serialization handling
-The auto-generated serializable proxy assumes the binding type is an interface (or trait for scala). If it is not the case, like some concrete or final class, the neutrino framework provides a way to get a serializable `SerializableProvider[T]` instance which contains the creation method of the target object, and this provider object can be used to pass around JVMs.
+## Example: handle serialization with SerializableProvider[T]
+The auto-generated serializable proxy assumes the binding type (such as `EventFilter[TestEvent]` in the example above) is an interface (trait for scala) or inheritable class with default constructor. If it is not the case, like some final class or the one without parameterless constructor, the neutrino framework provides a way to get a serializable `SerializableProvider[T]` instance which contains the creation information of the target object, which can be passed across JVMs.
 
-(Note: in native Guice API, we can also get a provider `Provider[T]` for the instance, but the provider is not serializable)
+> Note: in native Guice API, we can also get a provider `Provider[T]` for the instance, but the provider is not serializable.
 
 Here is an example:
 ```scala
@@ -210,10 +216,8 @@ class StreamHandler @Inject() (provider: SerializableProvider[EventProcessor]) {
 }
 ```
 
-Currently, the serializable `Provider[T]` can only be retrieved via annotation `InjectSerializableProvider` on a setter method.
-
 ## Example: bind serializable proxy and provider with annotations
-As you know, in the Guice framework, we can bind the same type with different annotations to distinguish them ([Guice doc](https://github.com/google/guice/wiki/BindingAnnotations)), and this feature is also supported for serializable proxy and provide, and in fact, the API is very straightforward.
+As you know, in the Guice framework, we can bind the same type with different annotations to distinguish them ([Guice doc](https://github.com/google/guice/wiki/BindingAnnotations)), and this feature is also supported for serializable proxy and provider, and in fact, the API is very straightforward.
 
 Here is the example for the usage of the serializable proxy with annotations:
 ```scala
@@ -221,7 +225,8 @@ class FilterModule(dbConfig: DbConfig) extends SparkModule {
     override def configure(): Unit = {
         bind[DbConfig].toInstance(dbConfig)
         bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
-        bind[EventFilter[TestEvent]].annotatedWith(Names.named("Hello")).withSerializableProxy.to[DbUserWhiteListsEventFilter].in[SingletonScope]
+        bind[EventFilter[TestEvent]].annotatedWith(Names.named("Hello"))
+            .withSerializableProxy.to[DbUserWhiteListsEventFilter].in[SingletonScope]
     }
 
 // get the serializable proxy from the injector directly
@@ -257,7 +262,7 @@ class StreamHandler @Inject() (@Named("Hello") provider: SerializableProvider[Ev
 ```
 
 ## Example: recover the job from spark checkpoint
-Sometimes we need to enable the checkpoint in case of job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for the injectors and all objects wrapped with auto-generated proxies or serializable providers. Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
+Sometimes we need to enable the checkpoint in case of a job failure, which requires any closure object used in the processing logic to be serializable. The neutrino framework would automatically handle the recovering work for the injectors and all objects wrapped with auto-generated proxies or serializable providers. Internally, when the job is recovering, it rebuilds the graph on every JVM firstly, based on which all objects are regenerated.
 
 Here is an example of how to do that:
 ```scala
@@ -315,7 +320,7 @@ val childInjector rootInjector.createChildInjector(new ChildModule())
 // this prepareInjectors must be called after all injectors are built and before any instance is retrieved from any injector
 injectorBuilder.prepareInjectors()
 ```
-Note: All children injectors belonged to the same root injector are in the same dependency graph, and all of them are serializable.
+> Note: All children injectors belonged to the same root injector are in the same dependency graph, and all of them are serializable.
 
 ## Multiple dependency graphs in a single job
 In most cases, we only need a single dependency graph in a spark job, but if there is any necessity to separate the dependencies between different logic, the neutrino also provides a way to create separate graphs. All you need to do is to provide a different name for each graph. The name for the default graph is "default".
@@ -334,4 +339,4 @@ injectorBuilder.prepareInjectors()
 
 // any spark logic
 ```
-This feature may be useful in spark test cases. Under the test circumstances, a SparkContext object will be reused to run multiple test jobs, then different names have to be specified to differentiate them.
+This feature may be useful in spark test cases. Under the test circumstances, a SparkContext object will be reused to run multiple test jobs, then different names have to be specified to differentiate them. An example can be found [here](./core/src/test/scala/com/hulu/neutrino/StreamingBatchScopeTests.scala).
