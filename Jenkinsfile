@@ -1,9 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'azul/zulu-openjdk:8'
-        }
-    }
+    agent { dockerfile true }
     stages {
         stage('build') {
             steps {
