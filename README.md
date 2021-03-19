@@ -6,6 +6,7 @@ A dependency injection (DI) framework for apache spark
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
+- [neutrino](#neutrino)
 - [Essential Information](#essential-information)
   - [Binary Releases](#binary-releases)
   - [How to build it](#how-to-build-it)
@@ -16,7 +17,8 @@ A dependency injection (DI) framework for apache spark
   - [Example: handle serialization with SerializableProvider[T]](#example-handle-serialization-with-serializableprovidert)
   - [Example: bind serializable proxy and provider with annotations](#example-bind-serializable-proxy-and-provider-with-annotations)
   - [Example: recover the job from spark checkpoint](#example-recover-the-job-from-spark-checkpoint)
-- [New scopes](#new-scopes)
+- [Scopes](#scopes)
+  - [Example: Singleton per JVM scope](#example-singleton-per-jvm-scope)
   - [Example: StreamingBatch scope](#example-streamingbatch-scope)
 - [Other features](#other-features)
   - [Some key spark objects are also injectable](#some-key-spark-objects-are-also-injectable)
@@ -90,7 +92,7 @@ The neutrino is built based on [Guice framework](https://github.com/google/guice
 If an object is about to be passed to another JVM, instead of serializing the object and its dependencies, the neutrino framework remembers the creation method of the object, passes the information to the target JVM, and recreates it along with all dependencies with the same dependency graph out there. The object doesn't have to be serializable, all of which is done automatically by the framework.
 
 And there is also another benefit. Before that a new object will be created every time it is passed to the target JVM, but since this approach introduces a single dependency graph in each JVM, the lifetime or scope of the passed objects in the executos can be managed by the graph out there, For example,
-- Singleton per JVM
+- [Singleton per JVM](#example-singleton-per-jvm-scope)
   - If the same object is passed to the target JVM the second time, the existing one could be reused instead of creating a new one.
 - [Streaming batch scope](#example-streamingbatch-scope)
   - If the same object is passed to the target JVM the second time within the same streaming batch, the existing one could be reused. Otherwise, an new object will be created.
@@ -289,9 +291,66 @@ streamingContext.start()
 streamingContext.awaitTermination()
 ```
 
-# New scopes
+A full example can be found [here](./examples/src/main/scala/com/hulu/neutrino/example/StreamingJobWithCheckpoint.scala).
+
+# Scopes
+## Example: Singleton per JVM scope
+The framework make it possible to keep a singeton object in an executor, which can be really useful in some cases.
+
+For example, if we'd like to send a stream to a Kafka topic, it is necessary to keep a singleton KafkaProducer in each executor. Generally, this can be done with a static varaible or object instance in scala, which is difficult for testing.
+
+But with the neutrino framework, we can easily get that by binding the Producer with a Singleton scope, which is easy for testing and maintenance.
+
+Here is an example:
+```scala
+import org.apache.kafka.clients.producer.{Producer, ProducerRecord}
+
+trait EventConsumer[T] {
+    def consume(t: T)
+}
+
+case class KafkaTopic(topic: String)
+class KafkaEventConsumer[T] @Inject()(producer: Producer[String, String], kafkaTopic: KafkaTopic) extends EventConsumer[T] {
+    override def consume(t: T): Unit = {
+        val record = new ProducerRecord[String, String](kafkaTopic.topic, Json.mapper.writeValueAsString(t))
+        producer.send(record)
+    }
+}
+
+stream
+    .foreachRDD{ rdd =>
+        rdd.foreach(e => injector.instance[EventConsumer[TestEvent]].consume(e))
+    }
+
+// OR
+val consumer = injector.instance[EventConsumer[TestEvent]]
+stream
+    .foreachRDD{ rdd =>
+        rdd.foreach(e => consumer.consume(e))
+    }
+```
+Here is how to generate the kafka provider and bind these dependencies:
+```scala
+case class KafkaProducerConfig(properties: Map[String, Object])
+class KafkaProducerProvider @Inject()(kafkaProducerConfig: KafkaProducerConfig) extends Provider[Producer[String, String]] {
+    override def get(): Producer[String, String] = {
+        new KafkaProducer(kafkaProducerConfig.properties.asJava)
+    }
+}
+
+class ConsumerModule(kafkaProducerConfig: KafkaProducerConfig, topic: String) extends SparkModule {
+    override def configure(): Unit = {
+        bind[KafkaTopic].toInstance(KafkaTopic(topic))
+        bind[KafkaProducerConfig].toInstance(kafkaProducerConfig)
+        bind[Producer[String, String]].toProvider[KafkaProducerProvider].in[SingletonScope]
+
+        bind[EventConsumer[TestEvent]].withSerializableProxy.to[KafkaEventConsumer[TestEvent]].in[SingletonScope]
+    }
+}
+```
+
 ## Example: StreamingBatch scope
-If we evolve the example above a little, say the user white list in the database is changeable, and we'd like to update the white list data in every batch. To achieve this goal, all we need to do is to bind the instance with a different scope.
+If we evolve the example of event filter a little, say the user white list in the database is changeable, and we'd like to update the white list data in every batch. To achieve this goal, all we need to do is to bind the instance with a different scope.
 ```scala
 class FilterModule(dbConfig: DbConfig) extends SparkModule {
     override def configure(): Unit = {
