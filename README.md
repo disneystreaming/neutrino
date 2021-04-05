@@ -100,7 +100,7 @@ And there is also another benefit. Before that a new object will be created ever
 Here are some examples:
 
 ## Example: handle serialization with serializable proxy
-Consider such a case that there is an event stream, and we'd like to abstract the logic to filter the stream based on a white list of user ids, which is stored in the database. Here is how we implement it with the neutrino.
+Consider such a case that there is an event stream, and we'd like to abstract the logic to filter the stream based on a white list of user ids, which is stored in the redis. Here is how we implement it with the neutrino.
 
 ```scala
 import javax.inject.Inject
@@ -114,7 +114,7 @@ trait EventFilter[T] {
 
 // here is the spark job logic
 val injectorBuilder = sparkSession.newInjectorBuilder()
-val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
+val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig))
 injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
 
 val filter = injector.instance[EventFilter[TestEvent]]
@@ -137,9 +137,9 @@ class StreamHandler @Inject() (filter: EventFilter[TestEvent]) {
 ```
 Generally, the `EventFilter[TestEvent]` instance must implement the `java.io.Serializable` interface since it is passed from the driver to executors. But with the neutrino framework, we don't need to do that.
 ```scala
-class DbUserWhiteListsEventFilter @Inject()(dbConnection: java.sql.Connection) extends EventFilter[TestEvent] {
+class RedisUserWhiteListsEventFilter @Inject()(jedis: JedisCommands) extends EventFilter[TestEvent] {
     private lazy val userIdSet = {
-        getAllUserIds(dbConnection)
+        jedis.hkeys("users").asScala
     }
 
     override def filter(t: TestEvent): Boolean = {
@@ -147,26 +147,23 @@ class DbUserWhiteListsEventFilter @Inject()(dbConnection: java.sql.Connection) e
     }
 }
 
-// how to generate the db connection
-case class DbConfig(url: String, userName: String, password: String)
-class DbConnectionProvider @Inject()(dbConfig: DbConfig) extends Provider[java.sql.Connection] {
-    override def get(): Connection = {
-        DriverManager.getConnection(
-            dbConfig.url,
-            dbConfig.userName,
-            dbConfig.password)
+// how to generate the redis connection
+case class RedisConfig(host: String, port: Int)
+class RedisConnectionProvider @Inject()(redisConfig: RedisConfig) extends Provider[JedisCommands] {
+    override def get(): JedisCommands = {
+        new Jedis(redisConfig.host, redisConfig.port)
     }
 }
 ```
 Here is how we bind the dependencies with the module API extensions introduced in the neutrino framework.
 ```scala
-class FilterModule(dbConfig: DbConfig) extends SparkModule {
+class FilterModule(redisConfig: RedisConfig) extends SparkModule {
     override def configure(): Unit = {
-        bind[DbConfig].toInstance(dbConfig)
-        bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
+        bind[RedisConfig].toInstance(redisConfig)
+        bind[JedisCommands].toProvider[RedisConnectionProvider].in[SingletonScope]
         // the magic is here
         // The module must extend `SparkModule` or `SparkPrivateModule` to get the method withSerializableProxy
-        bind[EventFilter[TestEvent]].withSerializableProxy.to[DbUserWhiteListsEventFilter].in[SingletonScope]
+        bind[EventFilter[TestEvent]].withSerializableProxy.to[RedisUserWhiteListsEventFilter].in[SingletonScope]
     }
 }
 ```
@@ -174,9 +171,9 @@ The extension method `withSerializableProxy` (provided by `SparkModule` or `Spar
 
 And since the scope for the object `EventFilter[TestEvent]` is `SingletonScope` (singleton per driver and executor JVM), the same object would be reused if there is already one there.
 
-Since the implementation `DbUserWhiteListsEventFilter` is recreated with the graph per JVM, so all its dependencies even the `java.sql.Connection` can be injected, which will also be created per JVM according to the binding info defined in the module.
+Since the implementation `RedisUserWhiteListsEventFilter` is recreated with the graph per JVM, so all its dependencies even the `JedisCommands` can be injected, which will also be created per JVM according to the binding info defined in the module.
 
-**There is only one limitation** --- all the modules defining the dependency graph have to be serializable (the base class `SparkModule` has already implemented the `java.io.Serializable`), which is rather easy to handle. For the above example, the only thing that needs to be serialized is `DbConfig`.
+**There is only one limitation** --- all the modules defining the dependency graph have to be serializable (the base class `SparkModule` has already implemented the `java.io.Serializable`), which is rather easy to handle. For the above example, the only thing that needs to be serialized is `RedisConfig`.
 
 ## Example: handle serialization with SerializableProvider[T]
 The auto-generated serializable proxy assumes the binding type (such as `EventFilter[TestEvent]` in the example above) is an interface (trait for scala) or inheritable class with default constructor. If it is not the case, like some final class or the one without parameterless constructor, the neutrino framework provides a way to get a serializable `SerializableProvider[T]` instance which contains the creation information of the target object, which can be passed across JVMs.
@@ -202,7 +199,7 @@ class EventProcessorModule extends SparkModule {
 }
 
 val injectorBuilder = sparkSession.newInjectorBuilder()
-val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
+val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig))
 injectorBuilder.prepareInjectors()
 
 // get the SerializableProvider from the injector directly
@@ -223,12 +220,12 @@ As you know, in the Guice framework, we can bind the same type with different an
 
 Here is the example for the usage of the serializable proxy with annotations:
 ```scala
-class FilterModule(dbConfig: DbConfig) extends SparkModule {
+class FilterModule(redisConfig: RedisConfig) extends SparkModule {
     override def configure(): Unit = {
-        bind[DbConfig].toInstance(dbConfig)
-        bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
+        bind[RedisConfig].toInstance(redisConfig)
+        bind[JedisCommands].toProvider[RedisConnectionProvider].in[SingletonScope]
         bind[EventFilter[TestEvent]].annotatedWith(Names.named("Hello"))
-            .withSerializableProxy.to[DbUserWhiteListsEventFilter].in[SingletonScope]
+            .withSerializableProxy.to[RedisUserWhiteListsEventFilter].in[SingletonScope]
     }
 
 // get the serializable proxy from the injector directly
@@ -271,7 +268,7 @@ Here is an example of how to do that:
 import com.hulu.neutrino._
 
 val injectorBuilder = sparkSession.newInjectorBuilder()
-val injector = injectorBuilder.newRootInjector(new FilterModule(dbConfig))
+val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig))
 injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
 
 val checkpointPath = "hdfs://HOST/checkpointpath"
@@ -350,15 +347,15 @@ class ConsumerModule(kafkaProducerConfig: KafkaProducerConfig, topic: String) ex
 ```
 
 ## Example: StreamingBatch scope
-If we evolve the example of event filter a little, say the user white list in the database is changeable, and we'd like to update the white list data in every batch. To achieve this goal, all we need to do is to bind the instance with a different scope.
+If we evolve the example of event filter a little, say the user white list in the redis is changeable, and we'd like to update the white list data in every batch. To achieve this goal, all we need to do is to bind the instance with a different scope.
 ```scala
-class FilterModule(dbConfig: DbConfig) extends SparkModule {
+class FilterModule(redisConfig: RedisConfig) extends SparkModule {
     override def configure(): Unit = {
         // the same as the above example
-        bind[DbConfig].toInstance(dbConfig)
-        bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
+        bind[RedisConfig].toInstance(redisConfig)
+        bind[JedisCommands].toProvider[RedisConnectionProvider].in[SingletonScope]
         // just change the scope from SingletonScope to StreamingBatch
-        bind[EventFilter[TestEvent]].withSerializableProxy.to[DbUserWhiteListsEventFilter].in[StreamingBatch]
+        bind[EventFilter[TestEvent]].withSerializableProxy.to[RedisUserWhiteListsEventFilter].in[StreamingBatch]
     }
 }
 ```
@@ -389,11 +386,11 @@ Here is an example
 import com.hulu.neutrino._
 
 val defaultInjectorBuilder = sparkSession.newInjectorBuilder()
-val injector1 = defaultInjectorBuilder.newRootInjector(new FilterModule(dbConfig))
+val injector1 = defaultInjectorBuilder.newRootInjector(new FilterModule(redisConfig))
 injectorBuilder.prepareInjectors()
 
 val injectorBuilder2 = sparkSession.newInjectorBuilder("another graph")
-val injector2 = injectorBuilder2.newRootInjector(new FilterModule(dbConfig))
+val injector2 = injectorBuilder2.newRootInjector(new FilterModule(redisConfig))
 injectorBuilder.prepareInjectors()
 
 // any spark logic

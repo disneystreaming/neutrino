@@ -13,9 +13,9 @@ object Modules {
             topics = Seq("EventTopic"))
         val kafkaProducerConfig = KafkaProducerConfig(Map(
             "bootstrap.servers" -> "server:port"))
-        val dbConfig = DbConfig("jdbc:myDriver:myDatabase", "user", "pass")
+        val redisConfig = RedisConfig("redis-host", 6379)
         Seq(new TestEventStreamModule(kafkaConsumerConfig),
-        new FilterModule(dbConfig),
+        new FilterModule(redisConfig),
         new ConsumerModule(kafkaProducerConfig, "targetTopic"))
     }
 }

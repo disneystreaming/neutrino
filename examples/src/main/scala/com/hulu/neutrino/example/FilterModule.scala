@@ -2,11 +2,12 @@ package com.hulu.neutrino.example
 
 import com.hulu.neutrino.annotation.scope.StreamingBatch
 import com.hulu.neutrino.{SingletonScope, SparkModule}
+import redis.clients.jedis.commands.JedisCommands
 
-class FilterModule(dbConfig: DbConfig) extends SparkModule {
+class FilterModule(redisConfig: RedisConfig) extends SparkModule {
     override def configure(): Unit = {
-        bind[DbConfig].toInstance(dbConfig)
-        bind[java.sql.Connection].toProvider[DbConnectionProvider].in[SingletonScope]
-        bind[EventFilter[TestEvent]].withSerializableProxy.to[DbUserWhiteListsEventFilter].in[StreamingBatch]
+        bind[RedisConfig].toInstance(redisConfig)
+        bind[JedisCommands].toProvider[RedisConnectionProvider].in[SingletonScope]
+        bind[EventFilter[TestEvent]].withSerializableProxy.to[RedisUserWhiteListsEventFilter].in[StreamingBatch]
     }
 }
