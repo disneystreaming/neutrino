@@ -33,7 +33,7 @@ A dependency injection (DI) framework for apache spark
 You can add the dependency with maven like this:
 ```xml
 <dependency>
-    <groupId>com.hulu.neutrino</groupId>
+    <groupId>com.disneystreaming.neutrino</groupId>
     <artifactId>core_${scalaVersion}</artifactId>
     <version>${sparkVersion}_0.3.3-SNAPSHOT</version>
 </dependency>
@@ -41,12 +41,12 @@ You can add the dependency with maven like this:
 
 for gradle
 ```groovy
-compile "com.hulu.neutrino:core_${scalaVersion}:${sparkVersion}_0.3.3-SNAPSHOT"
+compile "com.disneystreaming.neutrino:core_${scalaVersion}:${sparkVersion}_0.3.3-SNAPSHOT"
 ```
 
 for sbt
 ```scala
-libraryDependencies += "com.hulu.neutrino" % "core" % s"${sparkVersion}_0.3.3-SNAPSHOT"
+libraryDependencies += "com.disneystreaming.neutrino" % "core" % s"${sparkVersion}_0.3.3-SNAPSHOT"
 ```
 
 The supported values for `scalaVersion` and `sparkVersion` are:
@@ -265,7 +265,7 @@ Sometimes we need to enable the checkpoint in case of a job failure, which requi
 
 Here is an example of how to do that:
 ```scala
-import com.hulu.neutrino._
+import com.disneystreaming.neutrino._
 
 val injectorBuilder = sparkSession.newInjectorBuilder()
 val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig))
@@ -288,7 +288,7 @@ streamingContext.start()
 streamingContext.awaitTermination()
 ```
 
-A full example can be found [here](./examples/src/main/scala/com/hulu/neutrino/example/StreamingJobWithCheckpoint.scala).
+A full example can be found [here](./examples/src/main/scala/com/disneystreaming/neutrino/example/StreamingJobWithCheckpoint.scala).
 
 # Scopes
 ## Example: Singleton per JVM scope
@@ -365,7 +365,7 @@ With the `StreamingBatch` scope, the instance for `EventFilter[TestEvent]` will 
 ## Some key spark objects are also injectable
 These injectable objects include SparkSession, SparkContext, StreamingContext, which make the spark application more flexible.
 
-With it, we can even make `DStream[T]` or `RDD[T]` injectable. [Here](./examples/src/main/scala/com/hulu/neutrino/example/TestEventStreamProvider.scala) is an example.
+With it, we can even make `DStream[T]` or `RDD[T]` injectable. [Here](./examples/src/main/scala/com/disneystreaming/neutrino/example/TestEventStreamProvider.scala) is an example.
 
 ## Injector Hierarchy / Child Injector
 The Injector Hierarchy/Child Injector is also supported. Here is a simple example.
@@ -383,7 +383,7 @@ In most cases, we only need a single dependency graph in a spark job, but if the
 
 Here is an example
 ```scala
-import com.hulu.neutrino._
+import com.disneystreaming.neutrino._
 
 val defaultInjectorBuilder = sparkSession.newInjectorBuilder()
 val injector1 = defaultInjectorBuilder.newRootInjector(new FilterModule(redisConfig))
@@ -395,4 +395,4 @@ injectorBuilder.prepareInjectors()
 
 // any spark logic
 ```
-This feature may be useful in spark test cases. Under the test circumstances, a SparkContext object will be reused to run multiple test jobs, then different names have to be specified to differentiate them. An example can be found [here](./core/src/test/scala/com/hulu/neutrino/StreamingBatchScopeTests.scala).
+This feature may be useful in spark test cases. Under the test circumstances, a SparkContext object will be reused to run multiple test jobs, then different names have to be specified to differentiate them. An example can be found [here](./core/src/test/scala/com/disneystreaming/neutrino/StreamingBatchScopeTests.scala).

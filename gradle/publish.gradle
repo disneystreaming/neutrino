@@ -10,7 +10,7 @@ def pomConfig = {
         developer {
             id 'russell.bie'
             name 'Russell Bie'
-            email 'russell.bie@hulu.com'
+            email 'russell.bie@disneystreaming.com'
         }
     }
 }
