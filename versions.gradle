@@ -9,7 +9,7 @@ project.ext.sparkVersionMap = [
     '2.1': '2.1.3',
     '2.2': '2.2.3',
     '2.3': '2.3.3',
-    '2.4': '2.4.5'
+    '2.4': '2.4.6'
 ]
 
 String getScalaBinaryVersion() {
@@ -38,7 +38,7 @@ String getSparkMinorVersion() {
             throw new RuntimeException("unknown spark version $sparkMinorVersion")
         }
     } else {
-        return '2.3'
+        return '2.4'
     }
 }
 
@@ -59,9 +59,11 @@ ext {
     slf4jVersion = '1.7.28'
     silencerVersion = '1.7.3'
     spotbugsVersion = '4.2.0'
-    guavaVersion = '28.2-jre'
+    guavaVersion = '30.0-jre'
     scoveragePluginVersion = '5.0.0'
     guiceVersion = '4.2.3'
     scalaGuiceVersion = '4.2.11'
     scoverageVersion = '1.4.1'
+    jacksonVersion = '2.12.6'
+    kafkaClientVersion = '2.7.2 '
 }
