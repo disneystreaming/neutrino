@@ -18,7 +18,7 @@ package object neutrino {
     type SerializableModule = Module with JSerializable
     type SingletonScope = com.google.inject.Singleton
 
-    object SparkSessionExtensions {
+    private object SparkSessionExtensions {
         val builderNameMap = new mutable.WeakHashMap[SparkContext, mutable.Set[String]]()
     }
 
@@ -29,7 +29,7 @@ package object neutrino {
     }
 
     implicit class SparkSessionExtensions(private val sparkSession: SparkSession) extends AnyVal {
-        def newInjectorBuilder(name: String = "default"): SparkInjectorBuilder = {
+        def newInjectorBuilder(name: String = "default"): InjectorBuilder = {
             if (!SparkSessionExtensions.builderNameMap.contains(sparkSession.sparkContext)) {
                 SparkSessionExtensions.builderNameMap.put(sparkSession.sparkContext, mutable.Set())
             }
@@ -46,14 +46,14 @@ package object neutrino {
         def newSingleInjector(builderName: String, modules: SerializableModule*): SparkInjector = {
             val builder = newInjectorBuilder(builderName)
             val injector = builder.newRootInjector(modules:_*)
-            builder.prepareInjectors()
+            builder.completeBuilding()
             injector
         }
 
         def newSingleInjector(modules: SerializableModule*): SparkInjector = {
             val builder = newInjectorBuilder()
             val injector = builder.newRootInjector(modules:_*)
-            builder.prepareInjectors()
+            builder.completeBuilding()
             injector
         }
 

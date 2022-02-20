@@ -1,10 +1,9 @@
 package com.disneystreaming.neutrino.injectorbuilder
 
-import com.disneystreaming.neutrino.SparkInjector
+import com.disneystreaming.neutrino.{SerializableModule, SparkInjector}
+import com.disneystreaming.neutrino.graph.ModuleGraphProvider
 import com.google.common.base.Preconditions
 import com.google.inject.Key
-import com.disneystreaming.neutrino.graph.ModuleGraphProvider
-import com.disneystreaming.neutrino.{SerializableModule, SparkInjector}
 
 private[neutrino] class SparkInjectorImpl (
     private val graphProvider: ModuleGraphProvider,
@@ -18,7 +17,7 @@ private[neutrino] class SparkInjectorImpl (
         }
 
         if (sparkInjectorFactory == null) {
-            throw new UnsupportedOperationException("createChildInjector should only be called in master")
+            throw new UnsupportedOperationException("createChildInjector should only be called in the driver")
         }
 
         sparkInjectorFactory.createInjector(injectorIndex, modules.toSeq)

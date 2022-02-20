@@ -13,7 +13,7 @@ object StreamingJobWithCheckpoint {
             .getOrCreate()
         val injectorBuilder = sparkSession.newInjectorBuilder()
         val rootInjector = injectorBuilder.newRootInjector(Modules.bindModules:_*)
-        injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
+        injectorBuilder.completeBuilding() // Don't forget to call this before getting any instance from injector
 
         val checkpointPath = "hdfs://HOST/checkpointpath"
 

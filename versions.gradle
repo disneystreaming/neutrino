@@ -12,6 +12,14 @@ project.ext.sparkVersionMap = [
     '2.4': '2.4.6'
 ]
 
+project.ext.sparkTestVersionMap = [
+    '2.0': '2.0.2_0.14.0',
+    '2.1': '2.1.3_0.14.0',
+    '2.2': '2.2.3_0.14.0',
+    '2.3': '2.3.3_0.14.0',
+    '2.4': '2.4.5_0.14.0'
+]
+
 String getScalaBinaryVersion() {
     if (project.hasProperty("scala-version")) {
         def scalaBinaryVersion = project.property("scala-version")
@@ -53,17 +61,17 @@ ext {
     scalaBinaryVersion = getScalaBinaryVersion()
     sparkMinorVersion = getSparkMinorVersion()
     sparkVersion = getSparkVersion()
-    sparkTestVersion = "${getSparkVersion()}_0.14.0".toString()
+    sparkTestVersion = project.ext.sparkTestVersionMap[getSparkMinorVersion()].toString()
     scalaTestVersion = '3.0.8'
     junitVersion = '4.12'
     slf4jVersion = '1.7.28'
     silencerVersion = '1.7.3'
     spotbugsVersion = '4.2.0'
     guavaVersion = '30.0-jre'
-    scoveragePluginVersion = '5.0.0'
+    scoveragePluginVersion = '4.0.2'
     guiceVersion = '4.2.3'
     scalaGuiceVersion = '4.2.11'
     scoverageVersion = '1.4.1'
     jacksonVersion = '2.12.6'
-    kafkaClientVersion = '2.7.2 '
+    kafkaClientVersion = '2.7.2'
 }

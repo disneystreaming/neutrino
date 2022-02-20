@@ -1,6 +1,5 @@
 repositories {
     mavenCentral()
-    jcenter()
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url 'https://repository.cloudera.com/artifactory/cloudera-repos' }
     maven { url 'http://packages.confluent.io/maven/' }

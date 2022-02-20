@@ -1,6 +1,5 @@
 package com.disneystreaming.neutrino
 
-import com.disneystreaming.neutrino.sparktest.NoCheckpoint
 import com.holdenkarau.spark.testing.StreamingSuiteBase
 import com.disneystreaming.neutrino.annotation.scope.StreamingBatch
 import com.disneystreaming.neutrino.sparktest.{LazySparkContext, NoCheckpoint, SparkSuiteTest}
@@ -16,12 +15,14 @@ trait Processor {
     def process(i: Int): Int
 }
 
+trait SubProcessor extends Processor
+
 object BatchProcessor {
     @volatile
     var number = 0
 }
 
-final class BatchProcessor @Inject()() extends Processor {
+final class BatchProcessor @Inject()() extends SubProcessor {
     private val offset = BatchProcessor.number
     BatchProcessor.number += 1
 
@@ -31,6 +32,12 @@ final class BatchProcessor @Inject()() extends Processor {
 class TestModuleWithSerializableProxy extends SparkModule {
     override def configure(): Unit = {
         bind[Processor].withSerializableProxy.to[BatchProcessor].in[StreamingBatch]
+    }
+}
+
+class TestSubmoduleWithSerializableProxy extends SparkModule {
+    override def configure(): Unit = {
+        bind[SubProcessor].withSerializableProxy.to[BatchProcessor].in[StreamingBatch]
     }
 }
 
@@ -57,6 +64,20 @@ class StreamingBatchScopeTests extends SparkSuiteTest with StreamingSuiteBase wi
         testOperation[Int, Int](
             input,
             (in: DStream[Int]) => in.map(i => injector.instance[Processor].process(i)),
+            expected, ordered = false)
+    }
+
+    test("SerializableProxy injector serializable with child injector") {
+        val sparkSession = SparkSession.builder().getOrCreate()
+        val builder = sparkSession.newInjectorBuilder("test 1 for child injector")
+        val injector = builder.newRootInjector(new TestModuleWithSerializableProxy)
+        val childInjector = injector.createChildInjector(new TestSubmoduleWithSerializableProxy)
+        builder.completeBuilding()
+        val input = List(List(1, 2), List(3, 4), List(5, 6))
+        val expected = List(List(1, 2), List(4, 5), List(7, 8))
+        testOperation[Int, Int](
+            input,
+            (in: DStream[Int]) => in.map(i => childInjector.instance[SubProcessor].process(i)),
             expected, ordered = false)
     }
 

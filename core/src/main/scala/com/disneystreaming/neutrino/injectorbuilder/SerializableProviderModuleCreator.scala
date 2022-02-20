@@ -1,6 +1,5 @@
 package com.disneystreaming.neutrino.injectorbuilder
 
-import com.disneystreaming.neutrino.graph.{GraphProperties, ModulesCreator}
 import com.disneystreaming.neutrino.SerializableModule
 import com.disneystreaming.neutrino.graph.{GraphProperties, ModuleGraphProvider, ModulesCreator}
 

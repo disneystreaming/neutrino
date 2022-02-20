@@ -10,7 +10,8 @@ private[neutrino] class ModuleGraphProviderProxy extends ModuleGraphProvider wit
 
     override def moduleGraph: ModuleGraph = {
         if(this.innerProvider == null) {
-            throw new RuntimeException("The inner ModuleGraphProvider is ready")
+            throw new IllegalStateException("The current model graph is not ready. " +
+                "You may forget to call InjectorBuilder.completeBuilding")
         }
 
         innerProvider.moduleGraph
