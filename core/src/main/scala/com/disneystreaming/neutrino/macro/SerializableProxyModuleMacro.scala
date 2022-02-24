@@ -1,10 +1,9 @@
 package com.disneystreaming.neutrino.`macro`
 
-import com.disneystreaming.neutrino.annotation.NestedAnnotation
-import com.google.inject.{Key, Module}
-import com.google.inject.name.Names
-import com.disneystreaming.neutrino.lang.JAnnotation
 import com.disneystreaming.neutrino.annotation.{ConcreteNestedAnnotation, NestedAnnotation}
+import com.disneystreaming.neutrino.lang.JAnnotation
+import com.google.inject.Key
+import com.google.inject.name.Names
 import net.codingwell.scalaguice.ScalaModule.ScalaLinkedBindingBuilder
 import net.codingwell.scalaguice.typeLiteral
 

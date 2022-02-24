@@ -9,16 +9,28 @@ project.ext.sparkVersionMap = [
     '2.1': '2.1.3',
     '2.2': '2.2.3',
     '2.3': '2.3.3',
-    '2.4': '2.4.6'
+    '2.4': '2.4.8',
+    '3.0': '3.0.3',
+    '3.1': '3.1.3',
+    '3.2': '3.2.1',
 ]
 
 project.ext.sparkTestVersionMap = [
-    '2.0': '2.0.2_0.14.0',
-    '2.1': '2.1.3_0.14.0',
-    '2.2': '2.2.3_0.14.0',
-    '2.3': '2.3.3_0.14.0',
-    '2.4': '2.4.5_0.14.0'
+    '2.11': [
+        '2.0': '2.0.2_0.14.0',
+        '2.1': '2.1.3_0.14.0',
+        '2.2': '2.2.3_0.14.0',
+        '2.3': '2.3.3_0.14.0',
+        '2.4': '2.4.5_0.14.0'
+    ],
+    '2.12': [
+        '2.4': '2.4.7_1.1.1',
+        '3.0': '3.0.2_1.1.1',
+        '3.1': '3.1.2_1.1.1',
+        '3.2': '3.2.0_1.1.1',
+    ]
 ]
+
 
 String getScalaBinaryVersion() {
     if (project.hasProperty("scala-version")) {
@@ -61,7 +73,7 @@ ext {
     scalaBinaryVersion = getScalaBinaryVersion()
     sparkMinorVersion = getSparkMinorVersion()
     sparkVersion = getSparkVersion()
-    sparkTestVersion = project.ext.sparkTestVersionMap[getSparkMinorVersion()].toString()
+    sparkTestVersion = project.ext.sparkTestVersionMap[getScalaBinaryVersion()][getSparkMinorVersion()].toString()
     scalaTestVersion = '3.0.8'
     junitVersion = '4.12'
     slf4jVersion = '1.7.28'
