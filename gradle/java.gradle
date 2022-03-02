@@ -13,6 +13,10 @@ sourceSets {
     test { compileClasspath += configurations.provided }
 }
 
+tasks.withType(Javadoc) {
+    options.addBooleanOption("Xdoclint:-missing", true)
+}
+
 if (!ext.fastBuild) {
     compileJava {
         options.compilerArgs << '-Xlint:unchecked'

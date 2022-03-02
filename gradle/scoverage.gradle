@@ -2,5 +2,5 @@ apply plugin: 'org.scoverage'
 
 scoverage {
     scoverageVersion = rootProject.ext.scoverageVersion
-    scoverageScalaVersion = scalaBinaryVersion
+    scoverageScalaVersion = rootProject.ext.scalaVersion
 }

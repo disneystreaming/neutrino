@@ -1,7 +1,4 @@
 tasks.withType(Test) {
-    // to avoid conflict in openblas
-    // see: https://github.com/xianyi/OpenBLAS/wiki/Faq#multi-threaded
-    environment "OPENBLAS_NUM_THREADS", "1"
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 }
 

@@ -1,22 +1,13 @@
 
 dependencies {
-    compile(project(":core")) {
-        exclude group: "org.apache.spark", module: "spark-core_${scalaBinaryVersion}"
-        exclude group: "org.apache.spark", module: "spark-streaming_${scalaBinaryVersion}"
-        exclude group: "org.apache.spark", module: "spark-sql_${scalaBinaryVersion}"
-    }
-
-    provided "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
-    provided "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
-    provided "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
-
-    compile ("org.apache.spark:spark-streaming-kafka-0-10_${scalaBinaryVersion}:${sparkVersion}") {
+    implementation(project(":core"))
+    implementation ("org.apache.spark:spark-streaming-kafka-0-10_${scalaBinaryVersion}:${sparkVersion}") {
         exclude group: "org.scalatest", module: "scalatest_${scalaBinaryVersion}"
     }
 
-    compile "org.apache.kafka:kafka-clients:${kafkaClientVersion}"
-    compile 'redis.clients:jedis:3.5.2'
+    implementation "org.apache.kafka:kafka-clients:${kafkaClientVersion}"
+    implementation 'redis.clients:jedis:3.5.2'
 
-    compile "org.scala-lang.modules:scala-collection-compat_${scalaBinaryVersion}:2.4.2"
+    implementation "org.scala-lang.modules:scala-collection-compat_${scalaBinaryVersion}:2.4.2"
     implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaBinaryVersion}:${jacksonVersion}"
 }

@@ -1,7 +1,7 @@
 apply plugin: "com.github.spotbugs"
 
 dependencies {
-    compile "com.github.spotbugs:spotbugs-annotations:${spotbugsVersion}"
+    implementation "com.github.spotbugs:spotbugs-annotations:${spotbugsVersion}"
 
     spotbugs "com.github.spotbugs:spotbugs:${spotbugsVersion}"
 }

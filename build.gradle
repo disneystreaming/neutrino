@@ -2,15 +2,14 @@ buildscript {
     apply from: file('versions.gradle')
     dependencies {
         classpath "com.google.guava:guava:${guavaVersion}"
-        classpath "gradle.plugin.org.scoverage:gradle-scoverage:${scoveragePluginVersion}"
     }
 }
 
 plugins {
-    id "com.github.spotbugs" version "4.6.0" apply false
+    id "com.github.spotbugs" version "5.0.6" apply false
     id "com.github.alisiikh.scalastyle" version "3.4.1" apply false
-    id "com.github.johnrengelman.shadow" version "6.0.0" apply false
-    id "io.freefair.lombok" version "5.1.0" apply false
+    id "com.github.johnrengelman.shadow" version "7.1.2" apply false
+    id "io.freefair.lombok" version "6.4.1" apply false
     id "org.sonarqube" version "3.0"
     id 'org.scoverage' version "${scoveragePluginVersion}" apply false
     id 'idea'

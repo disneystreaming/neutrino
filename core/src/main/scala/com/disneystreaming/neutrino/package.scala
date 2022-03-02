@@ -18,7 +18,7 @@ package object neutrino {
     type SerializableModule = Module with JSerializable
     type SingletonScope = com.google.inject.Singleton
 
-    private object SparkSessionExtensions {
+    private[neutrino] object SparkSessionExtensions {
         val builderNameMap = new mutable.WeakHashMap[SparkContext, mutable.Set[String]]()
     }
 
