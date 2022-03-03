@@ -53,7 +53,7 @@ class SparkInjectorBuilder private[neutrino](private val sparkSession: SparkSess
     private def checkBuildComplete(): Unit = {
         if (buildComplete) {
             throw new IllegalStateException("the injector building is already completed, " +
-                "and it is not allowed to create new root/child injector or prepare injectors after that.")
+                "and it is not allowed to create new root/child injector or completeBuilding after that.")
         }
     }
 }

@@ -115,7 +115,7 @@ trait EventFilter[T] {
 // here is the spark job logic
 val injectorBuilder = sparkSession.newInjectorBuilder()
 val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig))
-injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
+injectorBuilder.completeBuilding() // Don't forget to call this before getting any instance from injector
 
 val filter = injector.instance[EventFilter[TestEvent]]
 val eventStream: DStream[TestEvent] = ...
@@ -200,7 +200,7 @@ class EventProcessorModule extends SparkModule {
 
 val injectorBuilder = sparkSession.newInjectorBuilder()
 val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig))
-injectorBuilder.prepareInjectors()
+injectorBuilder.completeBuilding()
 
 // get the SerializableProvider from the injector directly
 val provider = injector.instance[SerializableProvider[EventProcessor]]
@@ -269,7 +269,7 @@ import com.disneystreaming.neutrino._
 
 val injectorBuilder = sparkSession.newInjectorBuilder()
 val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig))
-injectorBuilder.prepareInjectors() // Don't forget to call this before getting any instance from injector
+injectorBuilder.completeBuilding() // Don't forget to call this before getting any instance from injector
 
 val checkpointPath = "hdfs://HOST/checkpointpath"
 
@@ -373,8 +373,8 @@ The Injector Hierarchy/Child Injector is also supported. Here is a simple exampl
 val injectorBuilder = sparkSession.newInjectorBuilder()
 val rootInjector = injectorBuilder.newRootInjector(new ParentModule())
 val childInjector rootInjector.createChildInjector(new ChildModule())
-// this prepareInjectors must be called after all injectors are built and before any instance is retrieved from any injector
-injectorBuilder.prepareInjectors()
+// this completeBuilding must be called after all injectors are built and before any instance is retrieved from any injector
+injectorBuilder.completeBuilding()
 ```
 > Note: All children injectors belonged to the same root injector are in the same dependency graph, and all of them are serializable.
 
@@ -387,11 +387,11 @@ import com.disneystreaming.neutrino._
 
 val defaultInjectorBuilder = sparkSession.newInjectorBuilder()
 val injector1 = defaultInjectorBuilder.newRootInjector(new FilterModule(redisConfig))
-injectorBuilder.prepareInjectors()
+injectorBuilder.completeBuilding()
 
 val injectorBuilder2 = sparkSession.newInjectorBuilder("another graph")
 val injector2 = injectorBuilder2.newRootInjector(new FilterModule(redisConfig))
-injectorBuilder.prepareInjectors()
+injectorBuilder.completeBuilding()
 
 // any spark logic
 ```
