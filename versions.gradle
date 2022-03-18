@@ -75,7 +75,7 @@ ext {
     sparkVersion = getSparkVersion()
     sparkTestVersion = project.ext.sparkTestVersionMap[getScalaBinaryVersion()][getSparkMinorVersion()].toString()
     scalaTestVersion = '3.0.8'
-    junitVersion = '4.12'
+    junitVersion = '4.13.1'
     slf4jVersion = '1.7.28'
     silencerVersion = '1.7.8'
     spotbugsVersion = '4.5.3'
@@ -84,6 +84,6 @@ ext {
     guiceVersion = '4.2.3'
     scalaGuiceVersion = '4.2.11'
     scoverageVersion = '1.4.11'
-    jacksonVersion = '2.12.6'
+    jacksonVersion = '2.13.2'
     kafkaClientVersion = '2.7.2'
 }

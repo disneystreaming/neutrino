@@ -10,4 +10,8 @@ dependencies {
 
     implementation "org.scala-lang.modules:scala-collection-compat_${scalaBinaryVersion}:2.4.2"
     implementation "com.fasterxml.jackson.module:jackson-module-scala_${scalaBinaryVersion}:${jacksonVersion}"
+
+    provided "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
 }

@@ -7,31 +7,30 @@ dependencies {
     api "com.google.inject:guice:${guiceVersion}"
     api 'org.apache.commons:commons-lang3:3.11'
     api "com.typesafe.scala-logging:scala-logging_${scalaBinaryVersion}:3.9.0"
-
-    api "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
-    api "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
-    api "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
-
     api "com.google.guava:guava:${guavaVersion}"
 
-    testImplementation "com.holdenkarau:spark-testing-base_${scalaBinaryVersion}:${sparkTestVersion}"
+    provided "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
+    provided "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
 
+    testImplementation ("com.holdenkarau:spark-testing-base_${scalaBinaryVersion}:${sparkTestVersion}") {
+        exclude group: "org.apache.spark"
+        exclude group: "org.apache.hadoop"
+    }
+
+    testImplementation 'org.eclipse.jetty:jetty-util:9.4.45.v20220203'
     testImplementation "org.scalactic:scalactic_${scalaBinaryVersion}:${scalaTestVersion}"
     testImplementation "org.scalatest:scalatest_${scalaBinaryVersion}:${scalaTestVersion}"
     testImplementation "org.scalamock:scalamock_${scalaBinaryVersion}:4.4.0"
     testImplementation "junit:junit:${junitVersion}"
     testImplementation "org.slf4j:slf4j-simple:${slf4jVersion}"
-}
-
-configurations {
-    //testImplementation.exclude(group: 'log4j', module: 'log4j')
+    testImplementation "io.netty:netty-all:4.1.47.Final"
 }
 
 configurations.all {
     resolutionStrategy.force "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
     resolutionStrategy.force "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
     resolutionStrategy.force "org.apache.spark:spark-sql_${scalaBinaryVersion}:${sparkVersion}"
-    exclude group: "org.apache.spark", module: "spark-hive_${scalaBinaryVersion}"
 }
 
 apply from: file("$rootDir/gradle/publish.gradle")
