@@ -29,5 +29,4 @@ jobs:
       with:
         java-version: '8'
         distribution: 'zulu'
-    - name: Build with Gradle
-      run: ./gradlew clean build
+    - run: echo "user name""${{ secrets.SONATYPE_USERNAME }}"
