@@ -1,3 +1,5 @@
+[![CI](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml/badge.svg)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml)
+
 # neutrino
 
 A dependency injection (DI) framework for apache spark
