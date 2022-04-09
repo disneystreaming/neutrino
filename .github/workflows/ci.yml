@@ -29,4 +29,4 @@ jobs:
       with:
         java-version: '8'
         distribution: 'zulu'
-    - run: echo "user name""${{ secrets.SONATYPE_USERNAME }}"
+    - run: echo ${{ secrets.SONATYPE_USERNAME }}
