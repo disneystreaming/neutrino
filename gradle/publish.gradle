@@ -44,11 +44,11 @@ publishing {
             
             afterEvaluate {
                 url = project.getProperty("repo-url")
-            }
-            // fill in the empty strings with your CORP user name and password
-            credentials {
-                username project.getProperty("username")
-                password project.getProperty("password")
+                // fill in the empty strings with your CORP user name and password
+                credentials {
+                    username project.getProperty("username")
+                    password project.getProperty("password")
+                }
             }
         }
     }
