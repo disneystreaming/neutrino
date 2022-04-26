@@ -30,9 +30,10 @@ jobs:
     - name: Build and publish
       run: |
         echo $PGP_SECRET | base64 --decode | gpg --import --no-tty --batch --yes
-        ./gradlew clean build :core:publish -Prepo-url=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -Pusername=$SONATYPE_USERNAME -Ppassword=$SONATYPE_USERNAME
+        ./gradlew clean build :core:publish -Prepo-url=https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/ -Pusername=$SONATYPE_USERNAME -Ppassword=$SONATYPE_USERNAME -Psigning.secretKeyRingFile=/home/runner/.gnupg/trustdb.gpg -Psigning.password=$PGP_PASSPHRASE -Psigning.keyId=$PGP_KEY_ID
       env:
         PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
         PGP_SECRET: ${{ secrets.PGP_SECRET }}
+        PGP_KEY_ID: ${{ secrets.PGP_KEY_ID }}
         SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
