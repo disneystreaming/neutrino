@@ -41,28 +41,14 @@ publishing {
     }
     repositories {
         maven {
-            def repoUrl = project.hasProperty("repo-url") ? project.getProperty("repo-url") : "url"
-            def user = project.hasProperty("username") ? project.getProperty("username") : "user"
-            def pass = project.hasProperty("password") ? project.getProperty("password") : "pass"
-            if (!project.hasProperty("username") || project.getProperty("username") == null || project.getProperty("username").trim().length() <= 0) {
-                throw new RuntimeException('no publish username')
-            } else {
-                throw new RuntimeException('has publish username')
-            }
-            
-            if (!project.hasProperty("password") || project.getProperty("password") == null || project.getProperty("password").trim().length() <= 0) {
-                throw new RuntimeException('no publish password')
-            } else {
-                throw new RuntimeException('has publish password')
-            }
             
             afterEvaluate {
-                url = repoUrl
+                url = project.getProperty("repo-url")
             }
             // fill in the empty strings with your CORP user name and password
             credentials {
-                username user
-                password pass
+                username project.getProperty("username")
+                password project.getProperty("password")
             }
         }
     }
