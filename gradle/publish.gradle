@@ -45,15 +45,15 @@ publishing {
             def user = project.hasProperty("username") ? project.getProperty("username") : "user"
             def pass = project.hasProperty("password") ? project.getProperty("password") : "pass"
             if (!project.hasProperty("username") || project.getProperty("username") == null || project.getProperty("username").length() <= 0) {
-                println 'no publish username'
+                throw new RuntimeException('no publish username')
             } else {
-                println 'has publish username'
+                throw new RuntimeException('has publish username')
             }
             
             if (!project.hasProperty("password") || project.getProperty("password") == null || project.getProperty("password").length() <= 0) {
-                println 'no publish password'
+                throw new RuntimeException('no publish password')
             } else {
-                println 'has publish password'
+                throw new RuntimeException('has publish password')
             }
             
             afterEvaluate {
