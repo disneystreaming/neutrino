@@ -8,7 +8,7 @@ if (ext.scalaSource || ext.scalaTest) {
     }
 
     dependencies {
-        implementation "com.github.ghik:silencer-lib_${scalaVersion}:${silencerVersion}"
+        compileOnly "com.github.ghik:silencer-lib_${scalaVersion}:${silencerVersion}"
         scalacPlugin "com.github.ghik:silencer-plugin_${scalaVersion}:${silencerVersion}"
         scalacPlugin "org.scalamacros:paradise_${scalaVersion}:2.1.1"
     }

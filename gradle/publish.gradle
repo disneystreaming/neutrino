@@ -1,56 +1,72 @@
 apply plugin: "maven-publish"
+apply plugin: 'signing'
 
+// publish Javadoc and source jars
 java {
     withJavadocJar()
     withSourcesJar()
 }
 
-def pomConfig = {
-    developers {
-        developer {
-            id 'russell.bie'
-            name 'Russell Bie'
-            email 'russell.bie@disneystreaming.com'
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            // set the publishing to "${rootProject.group}.${rootProject.name}" instead of just "${rootProject.group}"
+            // as the org stats get blended together in sonatype
+            groupId = "${rootProject.group}.${rootProject.name}"
+            artifactId="${rootProject.name}-${project.name}_${scalaBinaryVersion}"
+            version="${sparkMinorVersion}_${project.version}"
+            from components.java
+            pom {
+                name = "${rootProject.name}-${project.name}"
+                description = 'A dependency injection framework for apache spark'
+                url = 'https://github.com/disneystreaming/neutrino'
+                licenses {
+                    license {
+                        name = 'TOMORROW OPEN SOURCE TECHNOLOGY LICENSE 1.0'
+                        url = 'https://disneystreaming.github.io/TOST-1.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'russell-bie'
+                        name = 'Russell Bie'
+                        email = 'russell.bie@disneystreaming.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git@github.com:disneystreaming/neutrino.git'
+                    developerConnection = 'scm:git@github.com:disneystreaming/neutrino.git'
+                    url = 'https://github.com/disneystreaming/neutrino'
+                }
+                // add 'provided' dependencies to the pom
+                withXml {
+                    def root = asNode()
+                    project.configurations.provided.allDependencies.each { dep ->
+                        root.dependencies.'*'.last() + {
+                            delegate.dependency {
+                                delegate.groupId dep.group
+                                delegate.artifactId dep.name
+                                delegate.version dep.version
+                                delegate.scope 'provided'
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-publishing {
-    publications {
-        binary(MavenPublication) { publication ->
-            artifactId="${project.name}_${scalaBinaryVersion}"
-            version="${sparkMinorVersion}_${project.version}"
-            from components.java
-            pom.withXml {
-                def root = asNode()
-                project.configurations.provided.allDependencies.each { dep ->
-                    root.dependencies.'*'.last() + {
-                        delegate.dependency {
-                            delegate.groupId dep.group
-                            delegate.artifactId dep.name
-                            delegate.version dep.version
-                            delegate.scope 'provided'
-                        }
-                    }
-                }
-                root.appendNode('description', 'A dependency injection framework for apache spark')
-                root.children().last() + pomConfig
-            }
-        }
-    }
-    repositories {
-        maven {
-            def repoUrl = project.hasProperty("repo-url") ? project.getProperty("repo-url") : "url"
-            def user = project.hasProperty("username") ? project.getProperty("username") : "user"
-            def pass = project.hasProperty("password") ? project.getProperty("password") : "pass"
-            afterEvaluate {
-                url = repoUrl
-            }
-            // fill in the empty strings with your CORP user name and password
-            credentials {
-                username user
-                password pass
-            }
-        }
-    }
+// according to the doc https://docs.gradle.org/current/userguide/signing_plugin.html,
+// the signing plugin needs 3 parameters: signing.secretKeyRingFile, signing.password, signing.keyId
+// how to generate a gpg key? https://central.sonatype.org/publish/requirements/gpg/
+// 1. generate key with gpg. The gpg command may need password input which is the signing.password
+//   gpg --gen-key
+// for gradle plugin, the signingKeyId is the string which is composed of the last 8 characters of the gpg key id
+// 2. send the key to the key server
+//   gpg --keyserver hkp://keyserver.ubuntu.com --send-keys {key id}
+// 3. generate secret key ring file
+//   gpg --export-secret-keys {key id} > ~/secring.gpg
+signing {
+    sign publishing.publications.mavenJava
 }

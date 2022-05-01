@@ -1,0 +1,17 @@
+// this file has to be applied in root gradle according to https://github.com/gradle-nexus/publish-plugin,
+// otherwise, duplicate repos would be defined.
+// in this way, the "closeAndRelease*" tasks ar defined in the root project
+// and has to be run there.
+// And the publish.gradle is meant applied to the subproject which needs to be published.
+apply plugin: "io.github.gradle-nexus.publish-plugin"
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl = uri("https://s01.oss.sonatype.org/service/local/")
+            snapshotRepositoryUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            username = System.getenv("SONATYPE_USERNAME")
+            password = System.getenv("SONATYPE_PASSWORD")
+        }
+    }
+}
