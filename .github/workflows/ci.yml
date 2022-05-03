@@ -19,7 +19,20 @@ permissions:
 
 jobs:
   build:
-
+    strategy:
+      fail-fast: true
+      matrix:
+        scalaVersion: ["2.11", "2.12"]
+        sparkVersion: ["2.0", "2.1", "2.3", "2.4"]
+        exclude:
+          - scalaVersion: "2.12"
+            sparkVersion: "2.0"
+          - scalaVersion: "2.12"
+            sparkVersion: "2.1"
+          - scalaVersion: "2.12"
+            sparkVersion: "2.2"
+          - scalaVersion: "2.12"
+            sparkVersion: "2.3"
     runs-on: ubuntu-latest
 
     steps:
@@ -30,4 +43,4 @@ jobs:
         java-version: '8'
         distribution: 'zulu'
     - name: Build with Gradle
-      run: ./gradlew clean build
+      run: ./gradlew clean build -Pscala-version=${{ matrix.scalaVersion }} -Pspark-version=${{ matrix.sparkVersion }}
