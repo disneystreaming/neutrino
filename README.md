@@ -42,37 +42,38 @@ You can add the dependency with maven like this:
 ```xml
 <dependency>
     <groupId>com.disneystreaming.neutrino</groupId>
-    <artifactId>core_${scala-version}</artifactId>
-    <version>${spark-version}_0.1.0</version>
+    <artifactId>core_${scalaVersion}</artifactId>
+    <version>${sparkVersion}_0.1.0</version>
 </dependency>
 ```
 
 for gradle
 
 ```groovy
-compile "com.disneystreaming.neutrino:core_${scala-version}:${spark-version}_0.1.0"
+compile "com.disneystreaming.neutrino:core_${scalaVersion}:${sparkVersion}_0.1.0"
 ```
 
 for sbt
 
 ```scala
-libraryDependencies += "com.disneystreaming.neutrino" % "core" % s"${spark-version}_0.1.0"
+libraryDependencies += "com.disneystreaming.neutrino" % "core" % s"${sparkVersion}_0.1.0"
 ```
 
-The supported values for `scala-version` and `spark-version` are:
+The supported values for `scalaVersion` and `sparkVersion` are:
 
-| Name         | Values                        |
+|     Name     | Values                        |
 |:------------:|:-----------------------------:|
-| scala-version | 2.11   2.12                   |
-| spark-version | 2.0   2.1   2.2    2.3    2.4 |
+| scalaVersion | 2.11   2.12                   |
+| sparkVersion | 2.0   2.1   2.2    2.3    2.4 |
 
 ## How to build it
 
+We use JDK 8 and [gradle](https://gradle.org/) to build the project.
 ```shell
-./gradlew clean build -Pscala-version=${scala-version} -Pspark-version=${spark-version}
+./gradlew clean build -Pscala-version=${scalaVersion} -Pspark-version=${sparkVersion}
 ```
 
-The default value for `scala-version` is `2.11`, and the one for `spark-version` is `2.3`.
+The default value for `scalaVersion` is `2.11`, and the one for `sparkVersion` is `2.3`.
 
 You can also add an option `-Pfast` to skip all the test cases and code style checks to make the build process faster.
 
