@@ -13,6 +13,25 @@ import scala.reflect.{ClassTag, classTag}
 
 
 trait InjectableSerializableProviderModule[B <: Binder] { module: InternalModule[B] =>
+    /**
+     * bind SerializableProvider[T] with the specified key.
+     * The instance of SerializableProvider[T]  can be created
+     * by calling {{{ injector.instance[SerializableProvider[T]](key.getAnnotation) }}}
+     * or {{{ injector.instance[SerializableProvider[T]](key.getAnnotationType) }}}
+     * <br/>Example:
+     * {{{
+     *     bind(key).to[TImpl].in[Scope]
+     *     bindSerializableProvider(key)
+     * }}}
+     * <br/> How to expose the binding in private module:
+     * {{{
+     *     expose[SerializableProvider[T]].annotatedWith(key.getAnnotationType)
+     *     // or
+     *     expose[SerializableProvider[T]].annotatedWith(key.getAnnotation)
+     * }}}
+     * @param key The binding key
+     * @tparam T The binding type
+     */
     protected def bindSerializableProvider[T: TypeTag](key: Key[T]): Unit = {
         Preconditions.checkNotNull(key)
 
@@ -36,14 +55,61 @@ trait InjectableSerializableProviderModule[B <: Binder] { module: InternalModule
         })
     }
 
+    /**
+     * bind SerializableProvider[T] with the specified type and annotation instance.
+     * The instance of SerializableProvider[T]  can be created
+     * by calling {{{ injector.instance[SerializableProvider[T]](annotation) }}}
+     * <br/>Example:
+     * {{{
+     *     bind[T].annotatedWith(annotation).to[TImpl].in[Scope]
+     *     bindSerializableProvider[T](annotation)
+     * }}}
+     * <br/> How to expose the binding in private module:
+     * {{{
+     *     expose[SerializableProvider[T]].annotatedWith(annotation)
+     * }}}
+     * @param annotation the annotation instance of the binding
+     * @tparam T The binding type
+     */
     protected def bindSerializableProvider[T: TypeTag](annotation: JAnnotation): Unit = {
         bindSerializableProvider[T](Key.get(typeLiteral[T], annotation))
     }
 
+    /**
+     * bind SerializableProvider[T] with the specified type.
+     * The instance of SerializableProvider[T] can be created
+     * by calling {{{ injector.instance[SerializableProvider[T]] }}}
+     * <br/>Example:
+     * {{{
+     *     bind[T].to[TImpl].in[Scope]
+     *     bindSerializableProvider[T]()
+     * }}}
+     * <br/> How to expose the binding in private module:
+     * {{{
+     *     expose[SerializableProvider[T]]
+     * }}}
+     * @tparam T The binding type
+     */
     protected def bindSerializableProvider[T: TypeTag](): Unit = {
         bindSerializableProvider[T](Key.get(typeLiteral[T]))
     }
 
+    /**
+     * bind SerializableProvider[T] with the specified type and annotation type.
+     * The instance of SerializableProvider[T] can be created
+     * by calling {{{ injector.instance[SerializableProvider[T], TAnnotation]() }}}
+     * <br/>Example:
+     * {{{
+     *     bind[T].annotatedWith[TAnnotation].to[TImpl].in[Scope]
+     *     bindSerializableProvider[T, TAnnotation]()
+     * }}}
+     * <br/> How to expose the binding in private module:
+     * {{{
+     *     expose[SerializableProvider[T]].annotatedWith[TAnnotation]
+     * }}}
+     * @tparam T The binding type
+     * @tparam TAnnotation The binding annotation type
+     */
     protected def bindSerializableProvider[T: TypeTag, TAnnotation <: JAnnotation : ClassTag](): Unit = {
         bindSerializableProvider[T](Key.get(typeLiteral[T], classTag[TAnnotation].runtimeClass.asInstanceOf[Class[JAnnotation]]))
     }
