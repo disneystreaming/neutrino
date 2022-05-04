@@ -42,7 +42,7 @@ You can add the dependency with maven like this:
 ```xml
 <dependency>
     <groupId>com.disneystreaming.neutrino</groupId>
-    <artifactId>core_${scalaVersion}</artifactId>
+    <artifactId>neutrino-core_${scalaVersion}</artifactId>
     <version>${sparkVersion}_0.1.0</version>
 </dependency>
 ```
@@ -50,21 +50,81 @@ You can add the dependency with maven like this:
 for gradle
 
 ```groovy
-compile "com.disneystreaming.neutrino:core_${scalaVersion}:${sparkVersion}_0.1.0"
+compile "com.disneystreaming.neutrino:neutrino-core_${scalaVersion}:${sparkVersion}_0.1.0"
 ```
 
 for sbt
 
 ```scala
-libraryDependencies += "com.disneystreaming.neutrino" % "core" % s"${sparkVersion}_0.1.0"
+libraryDependencies += "com.disneystreaming.neutrino" % "neutrino-core" % s"${sparkVersion}_0.1.0"
 ```
 
-The supported values for `scalaVersion` and `sparkVersion` are:
+These are the current published versions:
 
-|     Name     | Values                        |
-|:------------:|:-----------------------------:|
-| scalaVersion | 2.11   2.12                   |
-| sparkVersion | 2.0   2.1   2.2    2.3    2.4 |
+<table align="center">
+    <thead>
+        <tr>
+            <th scope="col">spark version</th>
+            <th scope="col">scala version</th>
+            <th scope="col">published binary</th>
+        </tr>
+    </thead>
+    <tbody align="center">
+        <tr>
+            <td colspan="1" rowspan="1">2.0</td>
+            <td>2.11</td>
+            <td>
+                <a href="https://search.maven.org/artifact/com.disneystreaming.neutrino/neutrino-core_2.11/2.0_0.1.0/jar">
+                    <img src="https://img.shields.io/maven-central/v/com.disneystreaming.neutrino/neutrino-core_2.11/2.0_0.1.0.svg?label=Maven%20Central&style=flat&logo=appveyor" alt="Maven Central" />
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="1" rowspan="1">2.1</td>
+            <td>2.11</td>
+            <td>
+                <a href="https://search.maven.org/artifact/com.disneystreaming.neutrino/neutrino-core_2.11/2.1_0.1.0/jar">
+                    <img src="https://img.shields.io/maven-central/v/com.disneystreaming.neutrino/neutrino-core_2.11/2.1_0.1.0.svg?label=Maven%20Central&style=flat&logo=appveyor" alt="Maven Central" />
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="1" rowspan="1">2.2</td>
+            <td>2.11</td>
+            <td>
+                <a href="https://search.maven.org/artifact/com.disneystreaming.neutrino/neutrino-core_2.11/2.2_0.1.0/jar">
+                    <img src="https://img.shields.io/maven-central/v/com.disneystreaming.neutrino/neutrino-core_2.11/2.2_0.1.0.svg?label=Maven%20Central&style=flat&logo=appveyor" alt="Maven Central" />
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="1" rowspan="1">2.3</td>
+            <td>2.11</td>
+            <td>
+                <a href="https://search.maven.org/artifact/com.disneystreaming.neutrino/neutrino-core_2.11/2.3_0.1.0/jar">
+                    <img src="https://img.shields.io/maven-central/v/com.disneystreaming.neutrino/neutrino-core_2.11/2.3_0.1.0.svg?label=Maven%20Central&style=flat&logo=appveyor" alt="Maven Central" />
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="1" rowspan="2">2.4</td>
+            <td>2.11</td>
+            <td>
+                <a href="https://search.maven.org/artifact/com.disneystreaming.neutrino/neutrino-core_2.11/2.4_0.1.0/jar">
+                    <img src="https://img.shields.io/maven-central/v/com.disneystreaming.neutrino/neutrino-core_2.11/2.4_0.1.0.svg?label=Maven%20Central&style=flat&logo=appveyor" alt="Maven Central" />
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td>2.12</td>
+            <td>
+                <a href="https://search.maven.org/artifact/com.disneystreaming.neutrino/neutrino-core_2.12/2.4_0.1.0/jar">
+                    <img src="https://img.shields.io/maven-central/v/com.disneystreaming.neutrino/neutrino-core_2.12/2.4_0.1.0.svg?label=Maven%20Central&style=flat&logo=appveyor" alt="Maven Central" />
+                </a>
+            </td>
+        </tr>
+    </tbody>
+</table>
 
 ## How to build it
 
