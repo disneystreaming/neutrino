@@ -23,7 +23,7 @@ jobs:
       fail-fast: true
       matrix:
         scalaVersion: ["2.11", "2.12"]
-        sparkVersion: ["2.0", "2.1", "2.3", "2.4"]
+        sparkVersion: ["2.0", "2.1", "2.2", "2.3", "2.4"]
         exclude:
           - scalaVersion: "2.12"
             sparkVersion: "2.0"
