@@ -2,7 +2,7 @@
 
 # neutrino
 
-A dependency injection (DI) framework for apache spark
+A dependency injection framework for apache spark with graceful serialization handling
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
