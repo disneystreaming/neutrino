@@ -1,14 +1,11 @@
-[![CI](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml/badge.svg)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml)
+[![CI](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml/badge.svg)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml) [![licence](https://img.shields.io/badge/license-TOST-informational)](https://disneystreaming.github.io/TOST-1.0.txt)
 
 # neutrino
 
 A dependency injection framework for apache spark with graceful serialization handling
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [neutrino](#neutrino)
 - [Essential Information](#essential-information)
   - [Binary Releases](#binary-releases)
   - [How to build it](#how-to-build-it)
@@ -18,9 +15,11 @@ A dependency injection framework for apache spark with graceful serialization ha
   - [How to transfer an instance with inheritable type binding](#how-to-transfer-an-instance-with-inheritable-type-binding)
     - [Constructor injection](#constructor-injection)
     - [Annotation binding](#annotation-binding)
-    - [Limitation](#limitation)
+    - [Applicable scenario](#applicable-scenario)
   - [How to transfer an instance with final type binding](#how-to-transfer-an-instance-with-final-type-binding)
     - [Annotation binding and constructor injection](#annotation-binding-and-constructor-injection)
+    - [Applicable scenario](#applicable-scenario-1)
+  - [Limitation](#limitation)
   - [Private binding](#private-binding)
   - [Recover spark jobs from the checkpoint with neutrino](#recover-spark-jobs-from-the-checkpoint-with-neutrino)
 - [Scopes](#scopes)
@@ -321,9 +320,10 @@ And annotation binding is also supported:
 bind[EventFilter[ClickEvent]].annotatedWith(Names.named("Hello"))
             .withSerializableProxy.to[RedisEventFilter].in[SingletonScope]
 ```
-### Limitation
 
-Since we need to generate a subclass (proxy) of the binding interface, the binding type (which is `EventFilter` in this case) is required to be inheritable (interface or non-final class). And in the next section, we will introduce a low-level API to overcome this limitation.
+### Applicable scenario
+
+Since we need to generate a subclass (proxy) of the binding interface, the binding type (which is `EventFilter` in this case) is required to be inheritable (interface or non-final class). And in the next section, we will introduce a low-level API to transfer final type instances.
 
 ## How to transfer an instance with final type binding
 
@@ -391,6 +391,16 @@ bindSerializableProvider[EventProcessor, TAnnotation]()
 ```
 
 And the constructor injection is also supported.
+
+### Applicable scenario
+
+The `SerializableProvider` binding method can be used for both final and non-final type instance transition.
+
+## Limitation
+
+The general idea of the neutrino framework is to recreate the instances with the dependency graph in the executor JVM, which means any object state change in the driver can't be passed there with the generated proxy or `SerializableProvider`.
+
+If you'd like to transfer some objects with mutable state, please bind it in the old way.
 
 ## Private binding
 
