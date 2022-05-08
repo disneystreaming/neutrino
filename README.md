@@ -1,6 +1,6 @@
-[![CI](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml/badge.svg)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml) [![licence](https://img.shields.io/badge/license-TOST-informational)](https://disneystreaming.github.io/TOST-1.0.txt)
+[![CI](https://img.shields.io/github/workflow/status/disneystreaming/neutrino/CI/main?label=CI&logo=github)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-TOST-informational)](https://disneystreaming.github.io/TOST-1.0.txt) [![release date](https://img.shields.io/github/release-date/disneystreaming/neutrino?logo=github)](https://github.com/disneystreaming/neutrino/releases)
 
-# neutrino
+# neutrino <!-- omit in toc -->
 
 A dependency injection framework for apache spark with graceful serialization handling
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -9,6 +9,7 @@ A dependency injection framework for apache spark with graceful serialization ha
 - [Essential Information](#essential-information)
   - [Binary Releases](#binary-releases)
   - [How to build it](#how-to-build-it)
+  - [About the license - TOST](#about-the-license---tost)
 - [Why it is so difficult to apply DI on apache spark](#why-it-is-so-difficult-to-apply-di-on-apache-spark)
 - [What is the neutrino framework](#what-is-the-neutrino-framework)
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
@@ -135,6 +136,13 @@ We use JDK 8 and [gradle](https://gradle.org/) to build the project.
 The default value for `scalaVersion` is `2.11`, and the one for `sparkVersion` is `2.3`.
 
 You can also add an option `-Pfast` to skip all the test cases and code style checks to make the build process faster.
+
+## About the license - TOST
+
+Disney's [Tomorrow Open Source Technology (TOST)](https://disneystreaming.github.io/TOST-1.0.txt) License is a Disney specific version of the Modified Apache 2.0. The main difference is referenced in the license to abide by Apache's license agreement - noted below. 
+
+> 6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor and its affiliates, except as required to comply with Section 4(c) of the License and to reproduce the content of the NOTICE file
+
 
 # Why it is so difficult to apply DI on apache spark
 
