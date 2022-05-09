@@ -1,4 +1,5 @@
-[![CI](https://img.shields.io/github/workflow/status/disneystreaming/neutrino/CI/main?label=CI&logo=github)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-TOST-informational)](https://disneystreaming.github.io/TOST-1.0.txt) [![release date](https://img.shields.io/github/release-date/disneystreaming/neutrino?logo=github)](https://github.com/disneystreaming/neutrino/releases)
+[![CI](https://img.shields.io/github/workflow/status/disneystreaming/neutrino/CI/main?label=CI&logo=github)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-TOST-informational)](https://disneystreaming.github.io/TOST-1.0.txt) [![CLA assistant](https://cla-assistant.io/readme/badge/disneystreaming/neutrino)](https://cla-assistant.io/disneystreaming/neutrino) [![release date](https://img.shields.io/github/release-date/disneystreaming/neutrino?logo=github)](https://github.com/disneystreaming/neutrino/releases)
+
 
 # neutrino <!-- omit in toc -->
 
@@ -6,14 +7,17 @@ A dependency injection framework for apache spark with graceful serialization ha
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+- [What is the neutrino framework](#what-is-the-neutrino-framework)
 - [Essential Information](#essential-information)
   - [Binary Releases](#binary-releases)
   - [How to build it](#how-to-build-it)
   - [About the license - TOST](#about-the-license---tost)
-- [Why it is so difficult to apply DI on apache spark](#why-it-is-so-difficult-to-apply-di-on-apache-spark)
-- [What is the neutrino framework](#what-is-the-neutrino-framework)
+- [Why we need neutrino](#why-we-need-neutrino)
+  - [The difficulty to apply DI on apache spark](#the-difficulty-to-apply-di-on-apache-spark)
+  - [Start with a simple example](#start-with-a-simple-example)
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
-  - [How to transfer an instance with inheritable type binding](#how-to-transfer-an-instance-with-inheritable-type-binding)
+  - [Example code involved with neutrino](#example-code-involved-with-neutrino)
+  - [How does neutrino work internally](#how-does-neutrino-work-internally)
     - [Constructor injection](#constructor-injection)
     - [Annotation binding](#annotation-binding)
     - [Applicable scenario](#applicable-scenario)
@@ -32,6 +36,14 @@ A dependency injection framework for apache spark with graceful serialization ha
   - [Multiple dependency graphs in a single job](#multiple-dependency-graphs-in-a-single-job)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+# What is the neutrino framework
+
+The neutrino framework is a [Guice](https://github.com/google/guice) based dependency injection framework for apache spark and is designed to relieve the serialization work of development. More specifically, it will handle the serialization/deserialization work for the DI-generated objects automatically during the process of object transmission and checkpoint recovery.
+
+The framework also provides some handy DI object scope management features, such as Singleton Scope per JVM, StreamingBatch scope (reuse the object in the same spark streaming batch per JVM).
+
+In addition, the spark key utility objects such as SparkContext, SparkSession, StreamingContext are also injectable, which makes the spark job orchestration more flexible.
 
 # Essential Information
 
@@ -143,8 +155,9 @@ Disney's [Tomorrow Open Source Technology (TOST)](https://disneystreaming.github
 
 > 6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor and its affiliates, except as required to comply with Section 4(c) of the License and to reproduce the content of the NOTICE file
 
+# Why we need neutrino
 
-# Why it is so difficult to apply DI on apache spark
+## The difficulty to apply DI on apache spark
 
 As we know, [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection) (DI) is a famous design pattern that is widely used in Object-Oriented Programming (OOP). It separates the responsibility of "use" from the responsibility of "construction", and keeps modules evolving independently.
 
@@ -156,38 +169,15 @@ A spark job is a distributed application that requires the collaboration of mult
 
 ![serialize all dependencies](./images/deps_serialization.png)
 
-You may think adding `java.io.Serializable` to the class definitions sounds boring but not too hard. But for some objects containing system resources (such as a KafkaProducer) or classes defined in third party library, it is impossible for them to be serializable. Under such circumstances, usually a static field is created to hold the reference to those objects, which is hard to test and maintain.
+You may think adding `java.io.Serializable` to the class definitions sounds boring but not too hard. But for some objects containing system resources (such as a redis connection) or classes defined in third party library, it is impossible for them to be serializable. Under such circumstances, usually a static field is created to hold the reference to those objects, which are hard to test and maintain.
 
-```scala
-object KafkaProducerHolder {
-    val kafkaProducer = { /* logic here to create the producer according to some config */ }
-}
-```
+## Start with a simple example
 
-# What is the neutrino framework
+Consider a case where there is a user click behavior event stream, and we'd like to deduplicate the events in the stream, i.e. if the same user click the same item in the last 24 hours, the event should be filtered out.
 
-The neutrino framework is a [Guice](https://github.com/google/guice) based dependency injection framework for apache spark and is designed to relieve the serialization work of development. More specifically, it will handle the serialization/deserialization work for the DI-generated objects automatically during the process of object transmission and checkpoint recovery.
+Here we adopt [the Guice framework](https://github.com/google/guice) at the driver to build the spark application.
 
-The framework also provides some handy DI object scope management features, such as Singleton Scope per JVM, StreamingBatch scope (reuse the object in the same spark streaming batch per JVM).
-
-In addition, the spark key utility objects such as SparkContext, SparkSession, StreamingContext are also injectable, which makes the spark job orchestration more flexible.
-
-# How does the neutrino handle the serialization problem
-
-As we know, to adopt the DI framework, we need to first build a dependency graph first, which describes the dependency relationship between various types. Guice uses Module API to build the graph while the Spring framework uses XML files or annotations.
-
-The neutrino is built based on [Guice framework](https://github.com/google/guice), and of course, builds the dependency graph with the guice module API. It doesn't only keep the graph in the driver, but also has the same graph running on every executor.
-
-![serialize creation method](./images/serialize_creation_method.png)
-
-In the dependency graph, some nodes may generate objects which may be passed to the executors, and neutrino framework would assign unique ids to these nodes. As every JVM have the same graph, the graph on each JVM have the same node id set.
-If a DI-generated object is about to be passed to another JVM, instead of serializing the object itself and its dependencies, the neutrino framework serializes the creation method of the object (which contains the node id), passes the information to the target JVM, find the corresponding node in the graph of the target JVM and recreates it along with all dependencies with the same dependency graph out there. The object itself doesn't even need to be serializable.
-
-And there is also another benefit. Before that a new object will be created every time it is passed to the target JVM, but since this approach introduces a single dependency graph in each JVM, the lifetime or scope of the passed objects in the executors can be managed by the graph out there. For example, we can specify a object's scope as `Singleton`, then the second time the object is passed to the same JVM, the object generated in the last time will be reused.
-
-## How to transfer an instance with inheritable type binding
-
-Consider a case where there is a user click behavior event stream, and we'd like to deduplicate the events in the stream, i.e. if the same user click the same item in the last 24 hours, the event should be filtered out. Here is how we implement it with the neutrino.
+As shown in the code below, `EventFilter` interface abstacts the filtering logic, and is binded to subclass `RedisEventFilter`:
 
 ```scala
 case class ClickEvent(userId: String, clickedItem: String)
@@ -196,14 +186,50 @@ trait EventFilter[T] {
     def filter(t: T): Boolean
 }
 
+class RedisEventFilter extends EventFilter[ClickEvent] { ... }
+
+// Guice injector holds the dependency graph and instance can be generated from it
+val eventFilter = injector.instance[EventFilter[ClickEvent]]
+val eventStream: DStream[ClickEvent] = ...
+eventStream.filter(e => eventFilter.filter(e))
+```
+
+The `eventFilter` instance has to be created on the driver and passed to executors because the DI graph only exists there. Then `RedisEventFilter` class should be serializable and can't depends on the redis client `JedisCommands` instance directly which is not serializable. But it has to be used in `RedisEventFilter` class at executors, so the possible way to do that is to hold it in a static field, like the code shown below:
+
+```scala
+object JedisCommandsHolder {
+    val jedis = { /* create a JedisCommands instance from the config */ }
+}
+
+// `RedisEventFilter` should extend `Serializable` interface,
+// since its instance needs to be passed to executors
+class RedisEventFilter @Inject()()
+extends EventFilter[ClickEvent] with Serializable {
+   override def filter(e: ClickEvent): Boolean = {
+       // There is a Lua script in redis, which checks if the item exists for the same user id.
+       // if yes, the result `false` will be returned.
+       // If no, the item will be saved under the user id with 24 hours as the TTL and the return value is `true`.
+       JedisCommandsHolder.jedis.eval(DEDUP_SCRIPT,
+                  Collections.singletonList(e.userId), 
+                  Collections.singletonList(e.clickedItem))
+   }
+}
+```
+
+Then the class `RedisEventFilter` is hard to test since it references redis client in a static way and we can't replace it with a mock instance.
+
+# How does the neutrino handle the serialization problem
+
+## Example code involved with neutrino
+
+With the neutrino framework, the class `RedisEventFilter` can be like this:
+
+```scala
 // The RedisEventFilter class depends on JedisCommands directly,
 // and doesn't extend `java.io.Serializable` interface.
 class RedisEventFilter @Inject()(jedis: JedisCommands)
 extends EventFilter[ClickEvent] {
    override def filter(e: ClickEvent): Boolean = {
-       // There is a Lua script in redis, which checks if the item exists for the same user id.
-       // if yes, the result `false` will be returned.
-       // If no, the item will be saved under the user id with 24 hours as the TTL and the return value is `true`.
        jedis.eval(DEDUP_SCRIPT,
                   Collections.singletonList(e.userId), 
                   Collections.singletonList(e.clickedItem))
@@ -211,26 +237,26 @@ extends EventFilter[ClickEvent] {
 }
 ```
 
-And next we can use neutrino to create an instance of `EventFilter` to filter the stream:
+And here is how to use it (nearly the same)
 
 ```scala
-/* create injector */
-val injector = ... // the code will be described below
-
+// the injector here is customized by neutrino and is similar to the Guice one.
+val injector = ... 
 val eventFilter = injector.instance[EventFilter[ClickEvent]]
 val eventStream: DStream[ClickEvent] = ...
 eventStream.filter(e => eventFilter.filter(e))
 ```
 
-The injector is something like the [injector](https://github.com/google/guice/wiki/GettingStarted#guice-injectors) in Guice. Quote from Guice's doc: 
+There are mainly 2 changes compared to the example code in the previous section:
 
-> The injector internally holds the dependency graphs described in your application. When you request an instance of a given type, the injector figures out what objects to construct, resolves their dependencies, and wires everything together.
+- `RedisEventFilter` doesn't even have the `Serializable` interface.
+- It depends on `JedisCommands` directly.
 
-Here we use the injector to create the `EventFilter` instance from the graph. But here newly created `eventFilter` object is not the actual implementation (`RedisEventFilter`) but just an instance of `EventFilter`'s subclass/proxy which is generated by neutrino. It holds the corresponding graph node id and will handle the serialization work. Once the filter method is called, it will request a actual `RedisEventFilter` instance from the graph in the current JVM and delegate the method call on it. The code of the proxy is something like this:
+It is just like the code in a single JVM process. But how does it even work in the spark application?
+It is because the `eventFilter` created by the neutrino injector is not the instance of class `RedisEventFilter` any more, and it is just a serializable stub/proxy class generated by neutrino, which is something like this:
 
 ```scala
-// the provider contains the node id and is serializable,
-// and can generate the actual instance from the graph in current JVM.
+// The `provider` can generate the actual instance from the graph in current JVM.
 // the details will be discussed in the next section.
 class EventFilterProxy[T] @Inject()(provider: Provider[T])
 extends EventFilter[T] with Serialiable {
@@ -241,32 +267,21 @@ extends EventFilter[T] with Serialiable {
 }
 ```
 
-Generally, the eventFilter instance needs to be passed to the executors, which requires it to be serializable. But class `RedisEventFilter` doesn't extends the interface `java.io.Serializable` (actually, it can't do that because its dependency `JedisCommands` is not serializable). All of these work is handled by neutrino proxy automatically. Every thing is just like working in a single JVM environment.
+The `provider` instance created by neutrino is serializable and can create the underlying implementation (`RedisEventFilter` class) with DI on the current JVM, even at the executors (Yeah, you are right. The neutrino have DI on both the driver and executors). And everytime the `filter` method is called, it delegate the call to the actual instance.
 
-Actually, there is another way to run the filter logic on the executor:
+## How does neutrino work internally
 
-```scala
-eventStream
-   .filter(e => injector.instance[EventFilter[ClickEvent]].filter(e))
-```
+As we know, to adopt the DI framework, we need to first build a dependency graph first, which describes the dependency relationship between various types. Guice uses Module API to build the graph while the Spring framework uses XML files or annotations.
 
-This time the injector itself is passed to the executor and requests an `EventFilter` instance explicitly out there, i.e. the injector is serializable and will always reference the graph in current JVM.
-Then how to create the injector? Because neutrino is based on Guice, its API is similar. And since Scala is the primary language in spark world, we also use its Scala extension ([scala-guice](https://github.com/codingwell/scala-guice)) in the API.
+The neutrino is built based on [Guice framework](https://github.com/google/guice), and of course, builds the dependency graph with the guice module API. It doesn't only keep the graph in the driver, but also has the same graph running on every executor, as shown in the picture below.
 
-```scala
-import com.disneystreaming.neutrino._
+![serialize creation method](./images/serialize_creation_method.png)
 
-// injectorBuilder can be used to create the injector
-val injectorBuilder = sparkSession.newInjectorBuilder()
-val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig)) // multiple modules can be passed here
-injectorBuilder.completeBuilding() // don't miss this call
-```
+In the dependency graph, some nodes may generate objects which may be passed to the executors, and neutrino framework would assign unique ids to these nodes. As every JVM have the same graph, the graph on each JVM have the same node id set.
 
-The Guice uses modules to describe the dependency graph, and an injector containing the dependency graph can be created from them. The neutrino API is similar as Guice's.
+If a DI-generated object is about to be passed to another JVM, instead of serializing the object itself and its dependencies, the neutrino framework encapsulates the creation method of the object (which contains the node id) in a small object (a.k.a the `provide`), passes the information to the target JVM, then find the corresponding node in the graph there and recreates it along with all dependencies with it. The object itself doesn't even need to be serializable.
 
-But what's different from Guice is the `completeBuilding` calling, which seems redundant but is required. Because in the child/parent injector scenario, we need a call to mark the graph building completion (all necessary injectors are created), after which the graph is protected as readonly, then is serialized and sent to the executors. For single injector cases, the method `newSingleInjector` can be used without the `completeBuilding` calling.
-
-Here is the code of `RedisConnectionProvider` and `FilterModule`:
+To have neutrino generate the proxy, we just need to bind `EventFilter` to `RedisEventFilter` with a neutrino API. Here is the code to configure the bindings:
 
 ```scala
 case class RedisConfig(host: String, port: Int)
@@ -302,11 +317,37 @@ class FilterModule(redisConfig: RedisConfig) extends SparkModule {
 
 The modules define the dependency relationship among the components. Because they need to be transferred to executors to create the same graph, all of them are required to be serializable. The neutrino framework provide an abstract base class `SparkModule` which extends `java.io.Serializable` and provides some utility methods.
 
-Though the moduels still need to be serialized, it is way much easier than the object serialization. For the `FilterModule` above, the only thing needs to be serialized is the `RedisConfig`.
+Though the moduels still need to be serialized, it is way much easier than the object content serialization. For the `FilterModule` above, the only thing needs to be serialized is the `RedisConfig`.
+
+And there is also another benefit. Before that a new object will be created every time it is passed to the target JVM (that is how java deserialization works), but since neutrino introduces a dependency graph in each JVM, the lifetime/scope of the passed objects in the executors can be managed by the graph out there. For example, we can specify a object's scope as `Singleton`, then the second time the object is passed to the same JVM, the object generated in the last time will be reused.
+
+Actually, there is another way to run the filter logic on the executor:
+
+```scala
+eventStream
+   .filter(e => injector.instance[EventFilter[ClickEvent]].filter(e))
+```
+
+This time the injector itself is passed to the executor and requests an `EventFilter` instance explicitly out there, i.e. the injector is serializable and will always reference the graph in current JVM.
+
+Then how to create the injector? Because neutrino is based on Guice, its API is similar. And since Scala is the primary language in spark world, we also use its Scala extension ([scala-guice](https://github.com/codingwell/scala-guice)) in the API.
+
+```scala
+import com.disneystreaming.neutrino._
+
+// injectorBuilder can be used to create the injector
+val injectorBuilder = sparkSession.newInjectorBuilder()
+val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig)) // multiple modules can be passed here
+injectorBuilder.completeBuilding() // don't miss this call
+```
+
+The Guice uses modules to describe the dependency graph, and an injector containing the dependency graph can be created from them. The neutrino API is similar as Guice's.
+
+But what's different from Guice is the `completeBuilding` calling, which seems redundant but is required. Because in the child/parent injector scenario, we need a call to mark the graph building completion (all necessary injectors are created), after which the graph is protected as readonly, then is serialized and sent to the executors. For single injector cases, the method `newSingleInjector` can be used without the `completeBuilding` calling.
 
 ### Constructor injection
 
-We can also inject the proxy to the class constructor:
+We can also inject the proxy to a class's constructor:
 
 ```scala
 // injectable for constructors
