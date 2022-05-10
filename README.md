@@ -18,10 +18,12 @@ A dependency injection framework for apache spark with graceful serialization ha
 - [How does the neutrino handle the serialization problem](#how-does-the-neutrino-handle-the-serialization-problem)
   - [Example code involved with neutrino](#example-code-involved-with-neutrino)
   - [How does neutrino work internally](#how-does-neutrino-work-internally)
+    - [Full example code](#full-example-code)
     - [Constructor injection](#constructor-injection)
     - [Annotation binding](#annotation-binding)
     - [Applicable scenario](#applicable-scenario)
   - [How to transfer an instance with final type binding](#how-to-transfer-an-instance-with-final-type-binding)
+    - [Low-level API: SerializableProvider](#low-level-api-serializableprovider)
     - [Annotation binding and constructor injection](#annotation-binding-and-constructor-injection)
     - [Applicable scenario](#applicable-scenario-1)
   - [Limitation](#limitation)
@@ -31,7 +33,7 @@ A dependency injection framework for apache spark with graceful serialization ha
   - [Singleton per JVM scope](#singleton-per-jvm-scope)
   - [StreamingBatch scope](#streamingbatch-scope)
 - [Other features](#other-features)
-  - [Some key spark objects are also injectable](#some-key-spark-objects-are-also-injectable)
+  - [Key spark objects are also injectable](#key-spark-objects-are-also-injectable)
   - [Injector Hierarchy / Child Injector](#injector-hierarchy--child-injector)
   - [Multiple dependency graphs in a single job](#multiple-dependency-graphs-in-a-single-job)
 
@@ -345,6 +347,62 @@ The Guice uses modules to describe the dependency graph, and an injector contain
 
 But what's different from Guice is the `completeBuilding` calling, which seems redundant but is required. Because in the child/parent injector scenario, we need a call to mark the graph building completion (all necessary injectors are created), after which the graph is protected as readonly, then is serialized and sent to the executors. For single injector cases, the method `newSingleInjector` can be used without the `completeBuilding` calling.
 
+### Full example code
+
+Here is the full example code with neutrino:
+
+```scala
+import com.disneystreaming.neutrino._
+
+// The RedisEventFilter class depends on JedisCommands directly,
+// and doesn't extend `java.io.Serializable` interface.
+class RedisEventFilter @Inject()(jedis: JedisCommands)
+extends EventFilter[ClickEvent] {
+   override def filter(e: ClickEvent): Boolean = {
+       jedis.eval(DEDUP_SCRIPT,
+                  Collections.singletonList(e.userId), 
+                  Collections.singletonList(e.clickedItem))
+   }
+}
+
+case class RedisConfig(host: String, port: Int)
+
+// provider to generate the JedisCommands instance
+// `redisConfig` can be read from config files
+class RedisConnectionProvider @Inject()(redisConfig: RedisConfig)
+extends Provider[JedisCommands] {
+   override def get(): JedisCommands = {
+       new Jedis(redisConfig.host, redisConfig.port)
+   }
+}
+
+class FilterModule(redisConfig: RedisConfig) extends SparkModule {
+   override def configure(): Unit = {
+       bind[RedisConfig].toInstance(redisConfig)
+
+       // Bind the provider of `JedisCommands` with `Singleton` scope
+       // the `JedisCommands` will be kept singleton per JVM
+       bind[JedisCommands].toProvider[RedisConnectionProvider].in[SingletonScope]
+
+       // the magic is here
+       // The method `withSerializableProxy` will generate a proxy 
+       // extending `EventFilter` and `java.io.Serializable` interfaces with Scala macro.
+       // The module must extend `SparkModule` or `SparkPrivateModule` to get it
+       bind[EventFilter[ClickEvent]].withSerializableProxy
+           .to[RedisEventFilter].in[SingletonScope]
+   }
+}
+
+// injectorBuilder can be used to create the injector
+val injectorBuilder = sparkSession.newInjectorBuilder()
+val injector = injectorBuilder.newRootInjector(new FilterModule(redisConfig)) // multiple modules can be passed here
+injectorBuilder.completeBuilding() // don't miss this call
+
+val eventFilter = injector.instance[EventFilter[ClickEvent]]
+val eventStream: DStream[ClickEvent] = ...
+eventStream.filter(e => eventFilter.filter(e))
+```
+
 ### Constructor injection
 
 We can also inject the proxy to a class's constructor:
@@ -353,7 +411,7 @@ We can also inject the proxy to a class's constructor:
 // injectable for constructors
 class StreamHandler @Inject() (filter: EventFilter[ClickEvent]) {
     def handle(eventStream: DStream[ClickEvent]): Unit = {
-        // assign it to a local variable to avoid serialization for the StreamHandler class
+        // assign it to a local variable to avoid serialization for the `StreamHandler` class
         val localFilter = filter
         eventStream
             .filter(e => localFilter.filter(e))
@@ -375,6 +433,8 @@ bind[EventFilter[ClickEvent]].annotatedWith(Names.named("Hello"))
 Since we need to generate a subclass (proxy) of the binding interface, the binding type (which is `EventFilter` in this case) is required to be inheritable (interface or non-final class). And in the next section, we will introduce a low-level API to transfer final type instances.
 
 ## How to transfer an instance with final type binding
+
+### Low-level API: SerializableProvider
 
 The neutrino framework provides an interface `SerializableProvider` to handle final type binding case. This interface is nothing special:
 
@@ -423,6 +483,7 @@ eventStream.map { e =>
    provider.get().process(e)
 }
 ```
+
 ### Annotation binding and constructor injection
 
 `SerializableProvider` also supports annotation binding:
@@ -470,7 +531,9 @@ class FilterModule(redisConfig: RedisConfig) extends SparkPrivateModule {
    }
 }
 ```
+
 - For final type binding
+
 ```scala
 class EventProcessorModule extends SparkPrivateModule {
    override def configure(): Unit = {
@@ -480,7 +543,8 @@ class EventProcessorModule extends SparkPrivateModule {
    }
 }
 ```
-The one with annotations has the similar API. For details about exposing, please refer to [scala-guice](https://github.com/codingwell/scala-guice)'s doc.
+
+The one with annotations has the similar API. For details about that, please refer to [scala-guice](https://github.com/codingwell/scala-guice)'s doc.
 
 ## Recover spark jobs from the checkpoint with neutrino
 
@@ -517,6 +581,7 @@ val streamingContext = sparkSession.getOrCreateStreamingContext(checkpointPath, 
 streamingContext.start()
 streamingContext.awaitTermination()
 ```
+
 In the above example, because `handler` is used during DAG building, it needs to be serializable for checkpoint. Neutrino will  handle that automatically if it is binded with proxy or `SerializableProvider`.
 
 A full example can be found [here](./examples/src/main/scala/com/disneystreaming/neutrino/example/StreamingJobWithCheckpoint.scala).
@@ -543,7 +608,9 @@ recordStream.foreachRDD { recordRDD =>
    }
 
 ```
+
 Here is how to generate the kafka provider and bind these dependencies:
+
 ```scala
 case class KafkaProducerConfig(properties: Map[String, Object])
 
@@ -576,15 +643,15 @@ The StreamingBatch scope keeps the instance of a type singleton per streaming ba
 
 # Other features
 
-## Some key spark objects are also injectable
+## Key spark objects are also injectable
 
-These injectable objects include SparkSession, SparkContext, StreamingContext, which make the spark application more flexible.
+These key spark objects such as SparkSession, SparkContext, StreamingContext are also injectable, which makes the spark application more flexible.
 
-With it, we can even make `DStream[T]` or `RDD[T]` injectable. [Here](./examples/src/main/scala/com/disneystreaming/neutrino/example/ClickEventStreamProvider.scala) is an example.
+With it, we can even create the instances of `DStream[T]` or `RDD[T]` from the injector. [Here](./examples/src/main/scala/com/disneystreaming/neutrino/example/ClickEventStreamProvider.scala) is an example.
 
 ## Injector Hierarchy / Child Injector
 
-The Injector Hierarchy/Child Injector is also supported. Here is a simple example.
+The Hierarchy/Child Injector is also supported in neutrino. Here is a simple example.
 
 ```scala
 val injectorBuilder = sparkSession.newInjectorBuilder()
@@ -597,7 +664,7 @@ injectorBuilder.completeBuilding()
 
 ## Multiple dependency graphs in a single job
 
-In most cases, we only need a single dependency graph in a spark job, but if there is any necessity to separate the dependencies between different logic, the neutrino also provides a way to create separate graphs. All you need to do is to provide a different name for each graph. The name for the default graph is "default".
+In most cases, we only need a single dependency graph in a spark job, but if there is any necessity to separate the dependencies between to different graphs, the neutrino also provides a way to do that. All you need to do is to provide a different name for each graph. The name for the default graph is "\_\_default\_\_".
 
 Here is an example
 
@@ -611,8 +678,6 @@ injectorBuilder.completeBuilding()
 val injectorBuilder2 = sparkSession.newInjectorBuilder("another graph")
 val injector2 = injectorBuilder2.newRootInjector(new FilterModule(redisConfig))
 injectorBuilder2.completeBuilding()
-
-// any spark logic
 ```
 
 This feature may be useful in spark test cases. Under the test circumstances, a SparkContext object will be reused to run multiple test jobs, then different names have to be specified to differentiate them. An example can be found [here](./core/src/test/scala/com/disneystreaming/neutrino/StreamingBatchScopeTests.scala).
