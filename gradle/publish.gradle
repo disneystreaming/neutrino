@@ -18,7 +18,7 @@ publishing {
             from components.java
             pom {
                 name = "${rootProject.name}-${project.name}"
-                description = 'A dependency injection framework for apache spark'
+                description = 'A dependency injection framework for apache spark with graceful serialization handling'
                 url = 'https://github.com/disneystreaming/neutrino'
                 licenses {
                     license {
