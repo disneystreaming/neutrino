@@ -1,10 +1,11 @@
 [![CI](https://img.shields.io/github/workflow/status/disneystreaming/neutrino/CI/main?label=CI&logo=github)](https://github.com/disneystreaming/neutrino/actions/workflows/ci.yml) [![license](https://img.shields.io/badge/license-TOST-informational)](https://disneystreaming.github.io/TOST-1.0.txt) [![CLA assistant](https://cla-assistant.io/readme/badge/disneystreaming/neutrino)](https://cla-assistant.io/disneystreaming/neutrino) [![release date](https://img.shields.io/github/release-date/disneystreaming/neutrino?logo=github)](https://github.com/disneystreaming/neutrino/releases)
 
-
 # neutrino <!-- omit in toc -->
 
 A dependency injection framework for apache spark with graceful serialization handling
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
+
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [What is the neutrino framework](#what-is-the-neutrino-framework)
@@ -27,6 +28,8 @@ A dependency injection framework for apache spark with graceful serialization ha
     - [Annotation binding and constructor injection](#annotation-binding-and-constructor-injection)
     - [Applicable scenario](#applicable-scenario-1)
   - [Limitation](#limitation)
+    - [Solution](#solution)
+    - [Recommended solution](#recommended-solution)
   - [Private binding](#private-binding)
   - [Recover spark jobs from the checkpoint with neutrino](#recover-spark-jobs-from-the-checkpoint-with-neutrino)
 - [Scopes](#scopes)
@@ -143,6 +146,7 @@ These are the current published versions:
 ## How to build it
 
 We use JDK 8 and [gradle](https://gradle.org/) to build the project.
+
 ```shell
 ./gradlew clean build -Pscala-version=${scalaVersion} -Pspark-version=${sparkVersion}
 ```
@@ -153,7 +157,7 @@ You can also add an option `-Pfast` to skip all the test cases and code style ch
 
 ## About the license - TOST
 
-Disney's [Tomorrow Open Source Technology (TOST)](https://disneystreaming.github.io/TOST-1.0.txt) License is a Disney specific version of the Modified Apache 2.0. The main difference is referenced in the license to abide by Apache's license agreement - noted below. 
+Disney's [Tomorrow Open Source Technology (TOST)](https://disneystreaming.github.io/TOST-1.0.txt) License is a Disney specific version of the Modified Apache 2.0. The main difference is referenced in the license to abide by Apache's license agreement - noted below.
 
 > 6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor and its affiliates, except as required to comply with Section 4(c) of the License and to reproduce the content of the NOTICE file
 
@@ -315,7 +319,7 @@ class FilterModule(redisConfig: RedisConfig) extends SparkModule {
 }
 ```
 
->  Note: For details about how to bind types to their implementations, please refer to the [Guice](https://github.com/google/guice/wiki/GettingStarted) and [scala-guice](https://github.com/codingwell/scala-guice) doc.
+> Note: For details about how to bind types to their implementations, please refer to the [Guice](https://github.com/google/guice/wiki/GettingStarted) and [scala-guice](https://github.com/codingwell/scala-guice) doc.
 
 The modules define the dependency relationship among the components. Because they need to be transferred to executors to create the same graph, all of them are required to be serializable. The neutrino framework provide an abstract base class `SparkModule` which extends `java.io.Serializable` and provides some utility methods.
 
@@ -508,9 +512,104 @@ The `SerializableProvider` binding method can be used for both final and non-fin
 
 ## Limitation
 
-The general idea of the neutrino framework is to recreate the instances with the dependency graph in the executor JVM, which means any object state change in the driver can't be passed there with the generated proxy or `SerializableProvider`.
+The general idea of the neutrino framework is to recreate the instances with the dependency graphs in the executors, which means any object state change in the driver can't be passed there with the generated proxy or `SerializableProvider`.
 
 If you'd like to transfer some objects with mutable state, please bind it in the old way.
+
+For example, if we change the `eventFilter` example a little bit, the dudup time interval is not fixed but is retrieved from a configuration store and might change over time. In this case, the `RedisEventFilter` may need some modification.
+
+### Solution
+
+One solution is to hold the interval as a mutable state in the `RedisEventFilter` class.
+
+```scala
+trait EventFilter[T] {
+   def initialize(): Unit
+   def filter(t: T): Boolean
+}
+ 
+class RedisEventFilter @Inject()(jedis: JedisCommands)
+extends EventFilter[ClickEvent] with Serializable {
+   private var durationMins = 24 * 60
+ 
+   override def initialize(): Unit = {
+       this.durationMins = // read the duration from the configuration store
+   }
+ 
+   override def filter(t: ClickEvent): Boolean = {
+      jedis.eval(DEDUP_SCRIPT,
+                Collections.singletonList(e.userId),
+                Collections.singletonList(e.clickedItem, this.durationMins.toString))
+   }
+}
+ 
+eventStream
+   .foreachRDD { rdd =>
+       val eventFilter = injector.instance[EventFilter[ClickEvent]]
+       filter.initialize()
+       rdd.filter(e => eventFilter.filter(e))
+   }
+
+```
+
+A new mutable field `durationMins` has been added to store the actual cache duration, which is a mutable state and needs to be transfered to executors with the `RedisEventFilter` instance. So the `RedisEventFilter` has to implement `Serializable` interface this time.
+
+Here is the binding definition:
+
+```scala
+class FilterModule(redisConfig: RedisConfig) extends SparkModule {
+   override def configure(): Unit = {
+       bind[RedisConfig].toInstance(redisConfig)
+       bind[JedisCommands].withSerializableProxy
+           .toProvider[RedisConnectionProvider].in[SingletonScope]
+       bind[EventFilter[ClickEvent]].to[RedisEventFilter].in[SingletonScope]
+   }
+}
+```
+
+The `eventFilter` is binded and transfered like normal java objects. But it still depends on `JedisCommands`, so we need to generate a serializable proxy for `JedisCommands`. Then the `jedis` can delegate the redis call to the actual instance created by the graph there.
+
+### Recommended solution
+
+But I don't think it is a good design to use DI to generate some objects with mutable state. Retrieving duration from the config store can be seen as a pre-step to create the `RedisEventFilter` instance, so we can adopt `Abstract Factory` design pattern to solve this problem.
+
+```scala
+trait EventFilterFactory[T] {
+   def getFilter(): EventFilter[T]
+}
+ 
+class RedisEventFilterFactory[T] @Inject()(jedis: JedisCommands) {
+   def getFilter(): EventFilter[T] = {
+       val durationMins = // read the duration from the configuration store
+       new RedisEventFilter(jedis, durationMins)
+   }
+}
+ 
+class RedisEventFilter @Inject()(jedis: JedisCommands, durationMins: Int)
+extends EventFilter[ClickEvent] with Serializable {
+   override def filter(t: ClickEvent): Boolean = {
+      jedis.eval(DEDUP_SCRIPT,
+                Collections.singletonList(e.userId),
+                Collections.singletonList(e.clickedItem, this.durationMins.toString))
+   }
+}
+ 
+class FilterModule(redisConfig: RedisConfig) extends SparkModule {
+   override def configure(): Unit = {
+       bind[RedisConfig].toInstance(redisConfig)
+       bind[JedisCommands].withSerializableProxy
+           .toProvider[RedisConnectionProvider].in[SingletonScope]
+       bind[EventFilterFactory[ClickEvent]].to[RedisEventFilterFactory[ClickEvent]]
+           .in[SingletonScope]
+   }
+}
+ 
+eventStream
+   .foreachRDD { rdd =>
+       val eventFilter = injector.instance[EventFilterFactory[ClickEvent]].createFilter()
+       rdd.filter(e => eventFilter.filter(e))
+   }
+```
 
 ## Private binding
 
@@ -555,9 +654,17 @@ With neutrino, this problem can also be handled gracefully. It can recover the i
 Here is an example on how to do that:
 
 ```scala
+trait Handler[T] {
+    def handle(rdd: RDD[T]): Unit
+}
+
+class HandlerImpl extends Handler[ClickEvent] {
+    override def handle(rdd: RDD[T]): Unit = { /* ... */ }
+}
+
 class HandlerModule extends SparkModule {
     def configure(): Unit = {
-        bind[Handler].withSerializableProxy.to[HandlerImpl].in[SingletonScope]
+        bind[Handler[ClickEvent]].withSerializableProxy.to[HandlerImpl].in[SingletonScope]
     }
 }
 
@@ -597,7 +704,6 @@ For example, if we'd like to send a stream to a Kafka topic, it is necessary to 
 But with the neutrino framework, we can easily get that by binding the Producer with a Singleton scope, which is easy for testing and maintenance.
 
 Here is an example:
-
 
 ```scala
 // producer is a proxy instance
@@ -647,7 +753,32 @@ The StreamingBatch scope keeps the instance of a type singleton per streaming ba
 
 These key spark objects such as SparkSession, SparkContext, StreamingContext are also injectable, which makes the spark application more flexible.
 
-With it, we can even create the instances of `DStream[T]` or `RDD[T]` from the injector. [Here](./examples/src/main/scala/com/disneystreaming/neutrino/example/ClickEventStreamProvider.scala) is an example.
+For example, with this feature, we can abstract the creation of a stream:
+
+```scala
+case class KafkaConsumerConfig(properties: Map[String, String], topics: Seq[String])
+class UserFeatureLogStreamProvider @Inject()(
+    streamingContext: StreamingContext,
+    kafkaConfig: KafkaConsumerConfig)
+   extends Provider[DStream[ClickEvent]] {
+   override def get(): DStream[ClickEvent] = {
+       KafkaUtils
+           .createDirectStream[String, AvroClickEvent](
+               streamingContext,
+               LocationStrategies.PreferConsistent,
+               kafkaConfig.properties,
+               kafkaConfig.topics.toSet)
+           .map(_.value())
+           .map(avro => ClickEvent(avro.userId, avro.clickedItem))
+   }
+}
+```
+
+Then the stream can be retrived from the injector:
+
+```scala
+val stream = injector.instance[DStream[ClickEvent]]
+```
 
 ## Injector Hierarchy / Child Injector
 
